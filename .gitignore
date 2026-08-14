@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+.vs/
+.vscode/
+*.user
+*.suo
+TestResults/
+artifacts/
+
+# Local application data and credentials must never be committed.
+*.log
+settings.json
+manual-draft.json
+sync-state.json

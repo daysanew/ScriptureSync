@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ScriptureSync.App/ScriptureSync.App.csproj" />
+    <Project Path="src/ScriptureSync.Core/ScriptureSync.Core.csproj" />
+    <Project Path="src/ScriptureSync.OpenLP/ScriptureSync.OpenLP.csproj" />
+    <Project Path="src/ScriptureSync.PlanningCenter/ScriptureSync.PlanningCenter.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ScriptureSync.Tests/ScriptureSync.Tests.csproj" />
+  </Folder>
+</Solution>
