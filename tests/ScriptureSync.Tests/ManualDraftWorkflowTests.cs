@@ -129,9 +129,14 @@ public sealed class ManualDraftWorkflowTests : IDisposable
 
         await viewModel.SyncToOpenLpAsync();
 
-        Assert.Equal(["NKJV", "NLT", "AMP", "AMP"], client.SelectedTranslations);
-        Assert.Equal(["1 Peter 1:3", "1 Peter 1:3", "Romans 5:5", "Romans 5:5"], client.Searches);
-        Assert.Equal(4, client.AddedIds.Count);
+        Assert.Equal(
+            [
+                ("NKJV", "1 Peter 1:3"),
+                ("NLT", "1 Peter 1:3"),
+                ("AMP", "Romans 5:5"),
+                ("AMP", "Romans 5:5")
+            ],
+            client.AddAttempts);
         Assert.All(viewModel.Items, item => Assert.StartsWith("Added", item.Status));
     }
 
@@ -145,7 +150,7 @@ public sealed class ManualDraftWorkflowTests : IDisposable
         await viewModel.SyncToOpenLpAsync();
 
         Assert.Equal("Not found: 1 Corinthians 5:19-23 (AMP)", viewModel.Items[0].Status);
-        Assert.Empty(client.AddedIds);
+        Assert.Single(client.AddAttempts);
         Assert.Contains("1 need attention", viewModel.OpenLpStatus);
     }
 
@@ -159,11 +164,56 @@ public sealed class ManualDraftWorkflowTests : IDisposable
 
         await viewModel.SyncToOpenLpAsync();
 
-        Assert.Equal(["Romans 5:5", "Psalm 71:5"], client.Searches);
-        Assert.DoesNotContain("Isaiah 40:31", client.Searches);
-        Assert.Contains("OpenLP disconnected after 1 added", viewModel.OpenLpStatus);
-        Assert.Equal("Stopped: OpenLP disconnected", viewModel.Items[1].Status);
+        Assert.Equal(
+            [("KJV", "Romans 5:5"), ("NLT", "Psalm 71:5")],
+            client.AddAttempts);
+        Assert.DoesNotContain(client.AddAttempts,
+            attempt => attempt.Reference == "Isaiah 40:31");
+        Assert.Contains("plugin unavailable after 1 added", viewModel.OpenLpStatus);
+        Assert.Equal("Stopped: ScriptureSync plugin unavailable", viewModel.Items[1].Status);
         Assert.Equal("Ready", viewModel.Items[2].Status);
+    }
+
+    [Fact]
+    public async Task Plugin_status_check_reports_ready_with_installed_Bible_count()
+    {
+        var client = new FakeOpenLpClient();
+        var viewModel = CreateViewModel(client);
+
+        var available = await viewModel.CheckOpenLpPluginAsync();
+
+        Assert.True(available);
+        Assert.Equal("Ready • plugin active • 3 Bibles", viewModel.OpenLpStatus);
+    }
+
+    [Fact]
+    public async Task Sync_stops_before_adding_when_plugin_status_check_fails()
+    {
+        var client = new FakeOpenLpClient
+        {
+            PrepareException = new HttpRequestException("Connection refused.")
+        };
+        var viewModel = CreateViewModel(client);
+        viewModel.AddPastedText("John 3:16 (KJV)");
+
+        await viewModel.SyncToOpenLpAsync();
+
+        Assert.Empty(client.AddAttempts);
+        Assert.Equal("Plugin unavailable • start OpenLP and activate ScriptureSync", viewModel.OpenLpStatus);
+        Assert.Equal("Ready", viewModel.Items[0].Status);
+    }
+
+    [Fact]
+    public void Clear_all_removes_every_row_and_clears_the_saved_draft()
+    {
+        var viewModel = CreateViewModel();
+        viewModel.AddPastedText("John 3:16 (KJV)\nPsalm 23:1 (NLT)");
+
+        viewModel.ClearAll();
+
+        Assert.Empty(viewModel.Items);
+        Assert.Equal("Add or paste scripture references to begin.", viewModel.SummaryText);
+        Assert.Empty(CreateViewModel().Items);
     }
 
     public void Dispose()
@@ -189,41 +239,41 @@ public sealed class ManualDraftWorkflowTests : IDisposable
     {
         public string? MissingReference { get; init; }
         public string? DisconnectOnReference { get; init; }
-        public List<string> SelectedTranslations { get; } = [];
-        public List<string> Searches { get; } = [];
-        public List<string> AddedIds { get; } = [];
+        public Exception? PrepareException { get; init; }
+        public List<(string Translation, string Reference)> AddAttempts { get; } = [];
 
         public Task<OpenLpConnectionInfo> GetConnectionInfoAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(new OpenLpConnectionInfo(2, 6,
-                new Dictionary<string, string>(), "KJV"));
+                new Dictionary<string, string>
+                {
+                    ["KJV"] = "King James Version",
+                    ["NLT"] = "New Living Translation",
+                    ["AMP"] = "Amplified Bible"
+                }, "KJV"));
 
-        public Task<OpenLpConnectionInfo> PrepareAsync(CancellationToken cancellationToken = default) =>
-            GetConnectionInfoAsync(cancellationToken);
-
-        public Task SelectBibleAsync(string requestedCode, CancellationToken cancellationToken = default)
+        public Task<OpenLpConnectionInfo> PrepareAsync(CancellationToken cancellationToken = default)
         {
-            SelectedTranslations.Add(requestedCode);
-            return Task.CompletedTask;
+            if (PrepareException is not null)
+            {
+                throw PrepareException;
+            }
+
+            return GetConnectionInfoAsync(cancellationToken);
         }
 
-        public Task<OpenLpSearchResult?> FindScriptureAsync(
+        public Task<OpenLpAddResult?> AddScriptureAsync(
+            string translationCode,
             string reference,
             CancellationToken cancellationToken = default)
         {
-            Searches.Add(reference);
+            AddAttempts.Add((translationCode, reference));
             if (reference == DisconnectOnReference)
             {
                 throw new HttpRequestException("OpenLP exited.");
             }
             return Task.FromResult(reference == MissingReference
                 ? null
-                : new OpenLpSearchResult(reference, reference, "Verse text"));
-        }
-
-        public Task AddScriptureAndWaitAsync(string id, CancellationToken cancellationToken = default)
-        {
-            AddedIds.Add(id);
-            return Task.CompletedTask;
+                : new OpenLpAddResult(reference, translationCode, $"{reference} ({translationCode})"));
         }
     }
 

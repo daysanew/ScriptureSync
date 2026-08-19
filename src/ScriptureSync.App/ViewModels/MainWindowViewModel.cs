@@ -107,6 +107,48 @@ public sealed class MainWindowViewModel : ObservableObject
         SaveDraft();
     }
 
+    public void ClearAll()
+    {
+        Items.Clear();
+        SelectedItem = null;
+        SaveDraft();
+    }
+
+    public async Task<bool> CheckOpenLpPluginAsync()
+    {
+        if (_openLpClient is null)
+        {
+            OpenLpStatus = "ScriptureSync OpenLP integration is unavailable.";
+            return false;
+        }
+
+        OpenLpStatus = "Checking OpenLP plugin...";
+        try
+        {
+            var connection = await _openLpClient.PrepareAsync();
+            OpenLpStatus = $"Ready • plugin active • {connection.InstalledBibles.Count} Bibles";
+            return true;
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger?.Error("Unable to reach the ScriptureSync OpenLP plugin.", exception);
+            OpenLpStatus = "Plugin unavailable • start OpenLP and activate ScriptureSync";
+            return false;
+        }
+        catch (OpenLpException exception)
+        {
+            _logger?.Error("The ScriptureSync OpenLP plugin failed its status check.", exception);
+            OpenLpStatus = $"Plugin error • {exception.Message}";
+            return false;
+        }
+        catch (Exception exception)
+        {
+            _logger?.Error("Unexpected OpenLP plugin status-check failure.", exception);
+            OpenLpStatus = "Plugin check failed • see the ScriptureSync log";
+            return false;
+        }
+    }
+
     public async Task SyncToOpenLpAsync()
     {
         if (_openLpClient is null) return;
@@ -118,9 +160,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         try
         {
-            OpenLpStatus = "Warming up OpenLP Bibles (about 30 seconds)...";
-            var connection = await _openLpClient.PrepareAsync();
-            OpenLpStatus = $"Connected • API v{connection.ApiVersion}";
+            if (!await CheckOpenLpPluginAsync()) return;
 
             foreach (var item in Items)
             {
@@ -134,20 +174,16 @@ public sealed class MainWindowViewModel : ObservableObject
                 {
                     try
                     {
-                        item.SetSyncStatus($"Selecting {translation}...");
-                        await _openLpClient.SelectBibleAsync(translation);
                         foreach (var passage in parsed.Passages)
                         {
-                            item.SetSyncStatus($"Finding {passage} ({translation})...");
-                            var result = await _openLpClient.FindScriptureAsync(passage.ToString());
+                            item.SetSyncStatus($"Adding {passage} ({translation})...");
+                            var result = await _openLpClient.AddScriptureAsync(
+                                translation, passage.ToString());
                             if (result is null)
                             {
                                 rowErrors.Add($"Not found: {passage} ({translation})");
                                 continue;
                             }
-
-                            item.SetSyncStatus($"Adding {passage} ({translation})...");
-                            await _openLpClient.AddScriptureAndWaitAsync(result.Id);
                             rowAdded++;
                             addedTotal++;
                         }
@@ -165,7 +201,7 @@ public sealed class MainWindowViewModel : ObservableObject
                     catch (Exception exception)
                     {
                         _logger?.Error($"Failed to sync '{item.RawText}' as {translation}.", exception);
-                        rowErrors.Add($"OpenLP error for {translation}");
+                        rowErrors.Add($"{translation}: {exception.Message}");
                     }
                 }
 
@@ -187,13 +223,25 @@ public sealed class MainWindowViewModel : ObservableObject
                 ? $"Sync complete • {addedTotal} added"
                 : $"Sync complete • {addedTotal} added • {failedRows} need attention";
         }
+        catch (HttpRequestException exception)
+        {
+            activeItem?.SetSyncStatus("Stopped: ScriptureSync plugin unavailable");
+            _logger?.Error("Unable to reach the ScriptureSync OpenLP plugin.", exception);
+            OpenLpStatus = addedTotal == 0
+                ? "Cannot reach the ScriptureSync plugin. Start OpenLP and activate the plugin."
+                : $"Sync stopped • plugin unavailable after {addedTotal} added";
+        }
+        catch (OpenLpException exception)
+        {
+            activeItem?.SetSyncStatus($"OpenLP error: {exception.Message}");
+            _logger?.Error("The ScriptureSync OpenLP plugin reported an error.", exception);
+            OpenLpStatus = $"OpenLP error • {exception.Message}";
+        }
         catch (Exception exception)
         {
-            activeItem?.SetSyncStatus("Stopped: OpenLP disconnected");
-            _logger?.Error("Unable to connect to OpenLP.", exception);
-            OpenLpStatus = addedTotal == 0
-                ? "Cannot connect to OpenLP. Make sure OpenLP is running."
-                : $"Sync stopped • OpenLP disconnected after {addedTotal} added";
+            activeItem?.SetSyncStatus("Stopped: unexpected error");
+            _logger?.Error("Unexpected ScriptureSync failure.", exception);
+            OpenLpStatus = "Unexpected error. See the ScriptureSync log for details.";
         }
         finally
         {

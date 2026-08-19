@@ -6,6 +6,7 @@
         Width="1020"
         MinHeight="580"
         MinWidth="850"
+        Loaded="MainWindow_Loaded"
         WindowStartupLocation="CenterScreen"
         Background="#F5F7FA">
     <Grid Margin="30">
@@ -21,45 +22,20 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0">
-            <StackPanel>
-                <TextBlock FontSize="30" FontWeight="SemiBold" Foreground="#18212F" Text="Scripture Sync" />
-                <TextBlock Margin="0,5,0,0"
-                           FontSize="15"
-                           Foreground="#5D6878"
-                           Text="Review and prepare scripture before sending it to OpenLP." />
-            </StackPanel>
-            <Border HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Padding="14,8"
-                    Background="#FFF4D6"
-                    CornerRadius="6">
-                <TextBlock Foreground="#765900" Text="Manual testing mode" />
-            </Border>
-        </Grid>
+        <StackPanel Grid.Row="0">
+            <TextBlock FontSize="30" FontWeight="SemiBold" Foreground="#18212F" Text="Scripture Sync" />
+            <TextBlock Margin="0,5,0,0"
+                       FontSize="15"
+                       Foreground="#5D6878"
+                       Text="Review and prepare scripture before sending it to OpenLP." />
+        </StackPanel>
 
         <Border Grid.Row="2" Padding="18" Background="White" CornerRadius="9">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0">
-                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5D6878" Text="SOURCE" />
-                    <TextBlock Margin="0,5,0,0" FontSize="15" Foreground="#283444" Text="Manual draft" />
-                </StackPanel>
-                <StackPanel Grid.Column="1">
-                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5D6878" Text="PLANNING CENTER" />
-                    <TextBlock Margin="0,5,0,0" FontSize="15" Foreground="#283444" Text="Not connected yet" />
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5D6878" Text="OPENLP SYNC" />
-                    <TextBlock Margin="0,5,0,0" FontSize="15" Foreground="#283444"
-                               Text="{Binding OpenLpStatus}" />
-                </StackPanel>
-            </Grid>
+            <StackPanel>
+                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5D6878" Text="OPENLP" />
+                <TextBlock Margin="0,5,0,0" FontSize="15" Foreground="#283444"
+                           Text="{Binding OpenLpStatus}" />
+            </StackPanel>
         </Border>
 
         <Grid Grid.Row="4">
@@ -67,6 +43,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -87,7 +64,12 @@
                     Command="{Binding MoveUpCommand}" Content="Move ↑" />
             <Button Grid.Column="6" Width="72" Height="38"
                     Command="{Binding MoveDownCommand}" Content="Move ↓" />
-            <TextBlock Grid.Column="8"
+            <Button Grid.Column="7" Width="82" Height="38" Margin="16,0,0,0"
+                    Click="ClearAll_Click"
+                    Background="#FFF0F0"
+                    Foreground="#8A2020"
+                    Content="Clear All" />
+            <TextBlock Grid.Column="9"
                        VerticalAlignment="Center"
                        FontWeight="SemiBold"
                        Foreground="#4B5869"
@@ -111,7 +93,6 @@
                     <DataGridTextColumn Width="2.1*"
                                         Header="Scripture and translation"
                                         Binding="{Binding RawText, UpdateSourceTrigger=PropertyChanged}" />
-                    <DataGridTextColumn Width="0.65*" Header="Source" IsReadOnly="True" Binding="{Binding Source}" />
                     <DataGridTextColumn Width="1.6*" Header="Parsed as" IsReadOnly="True" Binding="{Binding NormalizedText}" />
                     <DataGridTextColumn Width="1.7*" Header="Status" IsReadOnly="True" Binding="{Binding Status}" />
                 </DataGrid.Columns>

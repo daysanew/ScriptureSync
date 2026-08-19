@@ -11,7 +11,8 @@ public class ScaffoldTests
         var configuration = new AppConfiguration();
 
         Assert.Equal(7, configuration.PlanWindowDays);
-        Assert.Equal("127.0.0.1", configuration.OpenLpBaseAddress.Host);
+        Assert.Equal("127.0.0.1", configuration.OpenLpBridgeAddress.Host);
+        Assert.Equal(4317, configuration.OpenLpBridgeAddress.Port);
     }
 
     [Fact]

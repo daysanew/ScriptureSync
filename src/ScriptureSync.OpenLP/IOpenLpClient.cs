@@ -4,9 +4,10 @@ public interface IOpenLpClient
 {
     Task<OpenLpConnectionInfo> GetConnectionInfoAsync(CancellationToken cancellationToken = default);
     Task<OpenLpConnectionInfo> PrepareAsync(CancellationToken cancellationToken = default);
-    Task SelectBibleAsync(string requestedCode, CancellationToken cancellationToken = default);
-    Task<OpenLpSearchResult?> FindScriptureAsync(string reference, CancellationToken cancellationToken = default);
-    Task AddScriptureAndWaitAsync(string id, CancellationToken cancellationToken = default);
+    Task<OpenLpAddResult?> AddScriptureAsync(
+        string translationCode,
+        string reference,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record OpenLpConnectionInfo(
@@ -15,4 +16,7 @@ public sealed record OpenLpConnectionInfo(
     IReadOnlyDictionary<string, string> InstalledBibles,
     string SelectedBible);
 
-public sealed record OpenLpSearchResult(string Id, string Reference, string VerseText);
+public sealed record OpenLpAddResult(
+    string Reference,
+    string Bible,
+    string ServiceItemTitle);

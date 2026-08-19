@@ -21,7 +21,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ScriptureSync.App\ScriptureSync.App.csproj" />
     <ProjectReference Include="..\..\src\ScriptureSync.Core\ScriptureSync.Core.csproj" />
-    <ProjectReference Include="..\..\src\ScriptureSync.PlanningCenter\ScriptureSync.PlanningCenter.csproj" />
     <ProjectReference Include="..\..\src\ScriptureSync.OpenLP\ScriptureSync.OpenLP.csproj" />
   </ItemGroup>
 

@@ -21,7 +21,7 @@ public partial class MainWindow : Window
         _viewModel = new MainWindowViewModel(
             new ScriptureReferenceParser(),
             new ManualDraftStore(paths, logger),
-            new OpenLpClient(new AppConfiguration().OpenLpBaseAddress),
+            new OpenLpBridgeClient(new AppConfiguration().OpenLpBridgeAddress),
             logger);
         DataContext = _viewModel;
     }
@@ -32,6 +32,38 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() == true)
         {
             _viewModel.AddPastedText(dialog.ScriptureText);
+        }
+    }
+
+    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        await _viewModel.CheckOpenLpPluginAsync();
+    }
+
+    private void ClearAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Items.Count == 0) return;
+        if (_viewModel.IsSyncing)
+        {
+            MessageBox.Show(
+                this,
+                "Wait for the current OpenLP sync to finish before clearing the list.",
+                "Scripture Sync",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var answer = MessageBox.Show(
+            this,
+            "Clear every scripture from this draft?\n\nThis will not remove anything already added to OpenLP.",
+            "Clear All Scriptures",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+        if (answer == MessageBoxResult.Yes)
+        {
+            _viewModel.ClearAll();
         }
     }
 }
