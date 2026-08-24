@@ -61,6 +61,8 @@ public sealed class ScriptureDraftItemViewModel : ObservableObject
 
     public void SetSyncStatus(string status) => Status = status;
 
+    public void RefreshValidation() => Validate();
+
     private void Validate()
     {
         var result = _parser.Parse(RawText);

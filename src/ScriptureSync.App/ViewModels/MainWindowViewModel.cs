@@ -114,6 +114,12 @@ public sealed class MainWindowViewModel : ObservableObject
         SaveDraft();
     }
 
+    public void RefreshValidation()
+    {
+        foreach (var item in Items) item.RefreshValidation();
+        RefreshSummary();
+    }
+
     public async Task<bool> CheckOpenLpPluginAsync()
     {
         if (_openLpClient is null)

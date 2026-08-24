@@ -5,6 +5,13 @@ namespace ScriptureSync.Core.Parsing;
 
 public sealed partial class ScriptureReferenceParser
 {
+    public ScriptureReferenceParser(string defaultBibleTranslation = "KJV")
+    {
+        DefaultBibleTranslation = defaultBibleTranslation;
+    }
+
+    public string DefaultBibleTranslation { get; set; }
+
     public ScriptureParseResult Parse(string? input)
     {
         if (string.IsNullOrWhiteSpace(input))
@@ -14,18 +21,23 @@ public sealed partial class ScriptureReferenceParser
 
         var text = NormalizePunctuation(input.Trim());
         var suffixMatch = TranslationSuffixRegex().Match(text);
-        if (!suffixMatch.Success)
+        IReadOnlyList<string> translations;
+        string referenceText;
+        if (suffixMatch.Success)
         {
-            return ScriptureParseResult.Invalid("Add a Bible translation at the end, such as (KJV).");
+            translations = ParseTranslations(TranslationValue(suffixMatch));
+            referenceText = suffixMatch.Groups["reference"].Value.Trim();
         }
-
-        var translations = ParseTranslations(TranslationValue(suffixMatch));
+        else
+        {
+            translations = ParseTranslations(DefaultBibleTranslation);
+            referenceText = text;
+        }
         if (translations.Count == 0)
         {
             return ScriptureParseResult.Invalid(
                 "Add one or more Bible translations, such as (KJV) or (KJV & NLT).");
         }
-        var referenceText = suffixMatch.Groups["reference"].Value.Trim();
         var groups = SplitBookGroups(referenceText);
         if (groups.Count == 0)
         {

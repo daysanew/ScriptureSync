@@ -2,6 +2,8 @@ namespace ScriptureSync.Core.Configuration;
 
 public sealed class AppConfiguration
 {
+    public string DefaultBibleTranslation { get; init; } = "KJV";
+
     public int PlanWindowDays { get; init; } = 7;
 
     public Uri OpenLpBridgeAddress { get; init; } = new("http://127.0.0.1:4317/v1/");

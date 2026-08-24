@@ -11,6 +11,9 @@ namespace ScriptureSync.App;
 public partial class MainWindow : Window
 {
     private readonly MainWindowViewModel _viewModel;
+    private readonly ScriptureReferenceParser _parser;
+    private readonly AppSettingsStore _settingsStore;
+    private AppConfiguration _configuration;
 
     public MainWindow()
     {
@@ -18,12 +21,33 @@ public partial class MainWindow : Window
 
         var paths = new LocalAppPaths();
         var logger = new FileAppLogger(paths.LogFile);
+        _settingsStore = new AppSettingsStore(paths, logger);
+        _configuration = _settingsStore.Load();
+        _parser = new ScriptureReferenceParser(_configuration.DefaultBibleTranslation);
         _viewModel = new MainWindowViewModel(
-            new ScriptureReferenceParser(),
+            _parser,
             new ManualDraftStore(paths, logger),
-            new OpenLpBridgeClient(new AppConfiguration().OpenLpBridgeAddress),
+            new OpenLpBridgeClient(_configuration.OpenLpBridgeAddress),
             logger);
         DataContext = _viewModel;
+    }
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SettingsWindow(_configuration.DefaultBibleTranslation) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+
+        _configuration = new AppConfiguration
+        {
+            DefaultBibleTranslation = dialog.DefaultBibleTranslation,
+            PlanWindowDays = _configuration.PlanWindowDays,
+            OpenLpBridgeAddress = _configuration.OpenLpBridgeAddress,
+            IncludedServiceTypeIds = _configuration.IncludedServiceTypeIds,
+            BibleMappings = _configuration.BibleMappings
+        };
+        _settingsStore.Save(_configuration);
+        _parser.DefaultBibleTranslation = _configuration.DefaultBibleTranslation;
+        _viewModel.RefreshValidation();
     }
 
     private void PasteScriptures_Click(object sender, RoutedEventArgs e)

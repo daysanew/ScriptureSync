@@ -6,6 +6,16 @@ public class ScriptureReferenceParserTests
 {
     private readonly ScriptureReferenceParser _parser = new();
 
+    [Fact]
+    public void Uses_default_translation_when_input_has_none()
+    {
+        var result = new ScriptureReferenceParser("NLT").Parse("John 3:16");
+
+        Assert.True(result.IsValid);
+        Assert.Equal(["NLT"], result.TranslationCodes);
+        Assert.Equal("John 3:16", Assert.Single(result.Passages).ToString());
+    }
+
     [Theory]
     [InlineData("John 1:1,5 (KJV)", "John 1:1,5")]
     [InlineData("John 1:1&5 (kjv)", "John 1:1,5")]
@@ -110,7 +120,6 @@ public class ScriptureReferenceParserTests
     }
 
     [Theory]
-    [InlineData("John 1:1-5")]
     [InlineData("not a scripture (KJV)")]
     [InlineData("John 1:9-3 (KJV)")]
     public void Returns_a_friendly_error_for_invalid_input(string input)

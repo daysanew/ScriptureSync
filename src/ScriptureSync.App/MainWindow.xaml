@@ -22,13 +22,17 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0">
-            <TextBlock FontSize="30" FontWeight="SemiBold" Foreground="#18212F" Text="Scripture Sync" />
-            <TextBlock Margin="0,5,0,0"
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <TextBlock FontSize="30" FontWeight="SemiBold" Foreground="#18212F" Text="Scripture Sync" />
+                <TextBlock Margin="0,5,0,0"
                        FontSize="15"
                        Foreground="#5D6878"
                        Text="Review and prepare scripture before sending it to OpenLP." />
-        </StackPanel>
+            </StackPanel>
+            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Width="92" Height="36"
+                    Click="Settings_Click" Content="Settings" />
+        </Grid>
 
         <Border Grid.Row="2" Padding="18" Background="White" CornerRadius="9">
             <StackPanel>
