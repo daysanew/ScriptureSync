@@ -57,17 +57,17 @@ duplicate unintended requests, or an OpenLP crash.
 
 ## 4. Planning Center integration (deferred from this version)
 
-- [ ] Choose the Planning Center authentication flow and store credentials only
+- [x] Choose the Planning Center authentication flow and store credentials only
       in the current user's protected local Windows storage.
-- [ ] Retrieve service types and plans within a configurable one-week window.
+- [x] Retrieve service types and plans within a configurable one-week window.
 - [ ] Support Sunday, Wednesday, and Special service types without hard-coded IDs.
-- [ ] Retrieve the plan item or note fields that contain scripture references.
+- [x] Retrieve the plan item or note fields that contain scripture references.
 - [ ] Extract references and translations using the existing parser.
-- [ ] Preserve deliberate duplicate scriptures and their original plan order.
-- [ ] Load imported scriptures into the same editable preview used by pasted text.
-- [ ] Let the volunteer add, remove, reorder, or correct rows before syncing.
-- [ ] Clearly distinguish import errors from OpenLP sync errors.
-- [ ] Add mocked integration tests so normal development does not require a live
+- [x] Preserve deliberate duplicate scriptures and their original plan order.
+- [x] Load imported scriptures into the same editable preview used by pasted text.
+- [x] Let the volunteer add, remove, reorder, or correct rows before syncing.
+- [x] Clearly distinguish import errors from OpenLP sync errors.
+- [x] Add mocked integration tests so normal development does not require a live
       Planning Center account.
 
 Completion: selecting a service plan fills the editable preview, but nothing is

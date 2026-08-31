@@ -6,6 +6,7 @@ using ScriptureSync.App.Services;
 using ScriptureSync.Core.Logging;
 using ScriptureSync.Core.Parsing;
 using ScriptureSync.OpenLP;
+using ScriptureSync.PlanningCenter;
 
 namespace ScriptureSync.App.ViewModels;
 
@@ -112,6 +113,27 @@ public sealed class MainWindowViewModel : ObservableObject
         Items.Clear();
         SelectedItem = null;
         SaveDraft();
+    }
+
+    public int AddPlanningCenterItems(
+        IEnumerable<PlanningCenterScriptureItem> items,
+        string planDisplayName)
+    {
+        var added = 0;
+        foreach (var item in items.OrderBy(item => item.Sequence))
+        {
+            var lines = item.Details.Replace("\r\n", "\n")
+                .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                AddItem(new ScriptureDraftItemViewModel(
+                    _parser, Guid.NewGuid(), line, $"Planning Center — {planDisplayName}"));
+                added++;
+            }
+        }
+        SelectedItem = Items.LastOrDefault();
+        SaveDraft();
+        return added;
     }
 
     public void RefreshValidation()

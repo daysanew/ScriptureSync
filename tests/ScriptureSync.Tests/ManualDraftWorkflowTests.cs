@@ -4,6 +4,7 @@ using ScriptureSync.Core.Configuration;
 using ScriptureSync.Core.Logging;
 using ScriptureSync.Core.Parsing;
 using ScriptureSync.OpenLP;
+using ScriptureSync.PlanningCenter;
 
 namespace ScriptureSync.Tests;
 
@@ -214,6 +215,22 @@ public sealed class ManualDraftWorkflowTests : IDisposable
         Assert.Empty(viewModel.Items);
         Assert.Equal("Add or paste scripture references to begin.", viewModel.SummaryText);
         Assert.Empty(CreateViewModel().Items);
+    }
+
+    [Fact]
+    public void Planning_Center_import_adds_each_detail_line_in_item_order()
+    {
+        var viewModel = CreateViewModel();
+        var count = viewModel.AddPlanningCenterItems(
+        [
+            new PlanningCenterScriptureItem("2", 2, "Message", "Romans 5:5 (NLT)"),
+            new PlanningCenterScriptureItem("1", 1, "Scripture", "John 3:16 (KJV)\nPsalm 23:1 (NLT)")
+        ], "Sunday — Aug 30");
+
+        Assert.Equal(3, count);
+        Assert.Equal(["John 3:16 (KJV)", "Psalm 23:1 (NLT)", "Romans 5:5 (NLT)"],
+            viewModel.Items.Select(item => item.RawText));
+        Assert.All(viewModel.Items, item => Assert.StartsWith("Planning Center", item.Source));
     }
 
     public void Dispose()

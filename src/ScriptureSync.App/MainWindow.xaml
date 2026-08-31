@@ -43,38 +43,35 @@
         </Border>
 
         <Grid Grid.Row="4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="18" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <Button Grid.Column="0" Width="118" Height="38" Margin="0,0,8,0"
+            <WrapPanel>
+            <Button Width="118" Height="38" Margin="0,0,8,8"
                     Command="{Binding AddCommand}" Content="Add Scripture" />
-            <Button Grid.Column="1" Width="126" Height="38" Click="PasteScriptures_Click"
+            <Button Width="126" Height="38" Margin="0,0,8,8" Click="PasteScriptures_Click"
                     Content="Paste Scriptures" />
-            <Button Grid.Column="3" Width="80" Height="38" Margin="0,0,8,0"
+            <Button Width="146" Height="38" Margin="0,0,26,8"
+                    Click="ImportPlanningCenter_Click" Content="Import from PCO" />
+            <Button Width="80" Height="38" Margin="0,0,8,8"
                     Command="{Binding DuplicateCommand}" Content="Duplicate" />
-            <Button Grid.Column="4" Width="74" Height="38" Margin="0,0,8,0"
+            <Button Width="74" Height="38" Margin="0,0,8,8"
                     Command="{Binding RemoveCommand}" Content="Remove" />
-            <Button Grid.Column="5" Width="66" Height="38" Margin="0,0,8,0"
+            <Button Width="66" Height="38" Margin="0,0,8,8"
                     Command="{Binding MoveUpCommand}" Content="Move ↑" />
-            <Button Grid.Column="6" Width="72" Height="38"
+            <Button Width="72" Height="38" Margin="0,0,8,8"
                     Command="{Binding MoveDownCommand}" Content="Move ↓" />
-            <Button Grid.Column="7" Width="82" Height="38" Margin="16,0,0,0"
+            <Button Width="82" Height="38" Margin="8,0,0,8"
                     Click="ClearAll_Click"
                     Background="#FFF0F0"
                     Foreground="#8A2020"
                     Content="Clear All" />
-            <TextBlock Grid.Column="9"
-                       VerticalAlignment="Center"
+            </WrapPanel>
+            <TextBlock Grid.Row="1"
+                       HorizontalAlignment="Right"
+                       Margin="0,0,0,2"
                        FontWeight="SemiBold"
                        Foreground="#4B5869"
                        Text="{Binding SummaryText}" />

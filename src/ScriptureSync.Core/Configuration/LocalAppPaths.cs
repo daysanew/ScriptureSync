@@ -13,6 +13,9 @@ public sealed class LocalAppPaths
 
     public string ConfigurationFile => Path.Combine(DataDirectory, "settings.json");
 
+    public string PlanningCenterCredentialsFile =>
+        Path.Combine(DataDirectory, "planning-center-credentials.dat");
+
     public string SyncStateFile => Path.Combine(DataDirectory, "sync-state.json");
 
     public string LogFile => Path.Combine(DataDirectory, "scripture-sync.log");

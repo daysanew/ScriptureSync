@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ScriptureSync.Core\ScriptureSync.Core.csproj" />
     <ProjectReference Include="..\ScriptureSync.OpenLP\ScriptureSync.OpenLP.csproj" />
+    <ProjectReference Include="..\ScriptureSync.PlanningCenter\ScriptureSync.PlanningCenter.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -11,6 +12,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
 </Project>

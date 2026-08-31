@@ -1,0 +1,25 @@
+<Window x:Class="ScriptureSync.App.PlanningCenterImportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Import from Planning Center" Height="310" Width="620" ResizeMode="NoResize"
+        Loaded="Window_Loaded" WindowStartupLocation="CenterOwner" Background="#F5F7FA">
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><RowDefinition Height="14" />
+            <RowDefinition Height="Auto" /><RowDefinition Height="8" />
+            <RowDefinition Height="Auto" /><RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock FontSize="25" FontWeight="SemiBold" Foreground="#18212F" Text="Import from Planning Center" />
+        <TextBlock Grid.Row="2" Foreground="#283444" Text="Upcoming service plan" />
+        <ComboBox x:Name="PlansComboBox" Grid.Row="4" Height="38" Padding="8,5"
+                  DisplayMemberPath="DisplayName" SelectionChanged="PlansComboBox_SelectionChanged" />
+        <TextBlock x:Name="StatusTextBlock" Grid.Row="5" Margin="0,10,0,0"
+                   Foreground="#5D6878" TextWrapping="Wrap" />
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="86" Height="36" Margin="0,0,8,0" IsCancel="True" Content="Cancel" />
+            <Button x:Name="ImportButton" Width="100" Height="36" IsDefault="True"
+                    IsEnabled="False" Click="Import_Click" Content="Import" />
+        </StackPanel>
+    </Grid>
+</Window>

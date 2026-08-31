@@ -26,6 +26,15 @@ public sealed class AppSettingsStoreTests : IDisposable
         Assert.Equal("NLT", CreateStore().Load().DefaultBibleTranslation);
     }
 
+    [Fact]
+    public void Planning_Center_item_names_are_saved_and_reloaded()
+    {
+        var store = CreateStore();
+        store.Save(new AppConfiguration { PlanningCenterItemNames = ["Scripture", "Message Text"] });
+
+        Assert.Equal(["Scripture", "Message Text"], CreateStore().Load().PlanningCenterItemNames);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_temporaryRoot)) Directory.Delete(_temporaryRoot, recursive: true);

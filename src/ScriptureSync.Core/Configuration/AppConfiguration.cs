@@ -10,6 +10,8 @@ public sealed class AppConfiguration
 
     public List<string> IncludedServiceTypeIds { get; init; } = [];
 
+    public List<string> PlanningCenterItemNames { get; init; } = ["Scripture"];
+
     public Dictionary<string, string> BibleMappings { get; init; } =
         new(StringComparer.OrdinalIgnoreCase);
 }
