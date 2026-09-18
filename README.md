@@ -25,25 +25,16 @@ dotnet build ScriptureSync.slnx
 dotnet test tests\ScriptureSync.Tests\ScriptureSync.Tests.csproj
 ```
 
-## Install from GitHub
+## Install
 
-1. Open the [ScriptureSync releases page](https://github.com/daysanew/ScriptureSync/releases).
-2. Download the latest `ScriptureSync-<version>-win-x64.zip` file.
-3. Extract the entire ZIP. Do not run the installer from inside the ZIP preview.
-4. Double-click **Install ScriptureSync.cmd** in the extracted folder.
-5. Restart OpenLP if the installer reports that it installed or updated the plugin.
-6. On the first installation, activate **ScriptureSync** under
-   **Settings > Manage Plugins** in OpenLP.
+Run **Install ScriptureSync.cmd** from the repository root. The script builds
+and installs the application, copies the OpenLP plugin, and creates a desktop
+shortcut. Restart OpenLP after installation, then activate **ScriptureSync**
+under **Settings > Manage Plugins**.
 
-The package includes the required .NET runtime and does not require Git, the
-.NET SDK, administrator access, or a separate .NET installation. It installs
-the application under `%LOCALAPPDATA%\ScriptureSync\App`, installs the OpenLP
-plugin under the current user's OpenLP data folder, and creates a desktop
-shortcut. Running a newer package upgrades the application in place and keeps
-the user's settings and Planning Center credentials.
-
-The installer checks the existing OpenLP plugin files. It skips them when they
-are already current and updates them when they are missing or different.
+The install script publishes the application with the existing .NET runtime,
+so the computer must have the .NET 10 SDK installed. The script does not install
+the SDK or other .NET dependencies for you.
 
 ## Bible translation names
 
@@ -73,5 +64,3 @@ reads references from the Details field of every matching item, preserves their
 plan order, and puts them into the normal editable draft. Review the rows before
 choosing **Sync to OpenLP**.
 
-See [ROADMAP.md](ROADMAP.md) for the remaining field-testing, release, plugin,
-and remaining integration work.
