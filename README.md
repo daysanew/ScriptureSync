@@ -25,18 +25,13 @@ dotnet build ScriptureSync.slnx
 dotnet test tests\ScriptureSync.Tests\ScriptureSync.Tests.csproj
 ```
 
-## ProPresenter investigation
+## ProPresenter integration (in progress)
 
-ProPresenter support is experimental and available only through standalone
-diagnostic tools. The WPF application still syncs to OpenLP. See the
-[feasibility assessment](docs/propresenter-feasibility.md),
-[API diagnostic](tools/ScriptureSync.ProPresenter.Spike/README.md),
-[Bible reader results](docs/propresenter-bible-spike.md), and
-[template-file experiment](tools/ScriptureSync.ProPresenter.TemplateSpike/README.md).
-Shared verse-to-slide behavior is documented in the
-[composition contract](docs/scripture-composition.md).
-The initial generated presentation passed user-reported manual checks; broader
-template/version validation is still needed before production integration.
+The WPF app now includes ProPresenter settings, Bible-text preview, library publishing,
+repeat updates, backups, and ordinary playlist appending. Native PCO placeholder
+linking remains a merge blocker, and the feature PR remains draft. See
+[setup, supported behavior, live results and remaining checks](docs/propresenter-integration.md).
+The [composition contract](docs/scripture-composition.md) describes shared slide behavior.
 
 ## Install
 
@@ -76,4 +71,3 @@ Choose **Import from PCO**, select an upcoming plan, and import it. ScriptureSyn
 reads references from the Details field of every matching item, preserves their
 plan order, and puts them into the normal editable draft. Review the rows before
 choosing **Sync to OpenLP**.
-

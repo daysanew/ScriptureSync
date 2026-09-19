@@ -1,5 +1,5 @@
 using ScriptureSync.Core.Parsing;
-using ScriptureSync.ProPresenter.BibleSpike;
+using ScriptureSync.ProPresenter;
 
 namespace ScriptureSync.Tests;
 

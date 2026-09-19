@@ -6,6 +6,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/ScriptureSync.Core/ScriptureSync.Core.csproj" />
+    <ProjectReference Include="../../src/ScriptureSync.ProPresenter/ScriptureSync.ProPresenter.csproj" />
   </ItemGroup>
 </Project>

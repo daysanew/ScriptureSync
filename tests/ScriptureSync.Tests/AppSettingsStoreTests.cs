@@ -15,6 +15,17 @@ public sealed class AppSettingsStoreTests : IDisposable
         var store = CreateStore();
 
         Assert.Equal("KJV", store.Load().DefaultBibleTranslation);
+        Assert.Equal("OpenLP", store.Load().PresentationSoftware);
+    }
+
+    [Fact]
+    public void ProPresenter_configuration_is_saved_and_reloaded()
+    {
+        var config = new ProPresenterConfiguration { Address = "http://127.0.0.1:49627", LibraryId = Guid.NewGuid().ToString(), TemplatePath = "template.pro" };
+        CreateStore().Save(new AppConfiguration { PresentationSoftware = "ProPresenter", ProPresenter = config });
+        var saved = CreateStore().Load();
+        Assert.Equal("ProPresenter", saved.PresentationSoftware);
+        Assert.Equal(config, saved.ProPresenter);
     }
 
     [Fact]

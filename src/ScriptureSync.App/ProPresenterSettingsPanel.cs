@@ -1,0 +1,101 @@
+using System.Net.Http;
+using System.Windows;
+using System.Windows.Controls;
+using Microsoft.Win32;
+using ScriptureSync.Core.Configuration;
+using ScriptureSync.ProPresenter;
+
+namespace ScriptureSync.App;
+
+public sealed class ProPresenterSettingsPanel : StackPanel
+{
+    private readonly ComboBox _software = new() { ItemsSource = new[] { "OpenLP", "ProPresenter" }, Height = 30 };
+    private readonly TextBox _address = new();
+    private readonly TextBox _template = new();
+    private readonly TextBox _bibles = new();
+    private readonly TextBox _directory = new();
+    private readonly ComboBox _library = new() { DisplayMemberPath = "Name", Height = 30 };
+    private readonly ComboBox _playlist = new() { DisplayMemberPath = "Name", Height = 30 };
+    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 12, 0, 0) };
+
+    public ProPresenterSettingsPanel(AppConfiguration configuration)
+    {
+        Margin = new Thickness(24);
+        _software.SelectedItem = configuration.PresentationSoftware;
+        var saved = configuration.ProPresenter;
+        _address.Text = saved.Address;
+        _template.Text = saved.TemplatePath;
+        _bibles.Text = saved.BibleDirectory;
+        _directory.Text = saved.LibraryDirectory;
+        _library.Items.Add(new ProPresenterItem(saved.LibraryId, saved.LibraryName)); _library.SelectedIndex = 0;
+        _playlist.Items.Add(new ProPresenterItem(saved.PlaylistId, string.IsNullOrEmpty(saved.PlaylistName) ? "Library only" : saved.PlaylistName)); _playlist.SelectedIndex = 0;
+        AddField("Presentation software", _software);
+        AddField("ProPresenter API address (from Network settings)", _address);
+        var connect = new Button { Content = "Test connection / load destinations", Height = 34, Margin = new(0, 8, 0, 4) };
+        connect.Click += async (_, _) =>
+        {
+            connect.IsEnabled = false;
+            try
+            {
+                using var http = NewHttp();
+                var api = new ProPresenterApiClient(http, new Uri(_address.Text.Trim()));
+                var version = await api.GetVersionAsync();
+                var selectedLibrary = (_library.SelectedItem as ProPresenterItem)?.Id;
+                var selectedPlaylist = (_playlist.SelectedItem as ProPresenterItem)?.Id;
+                var libraries = await api.GetLibrariesAsync();
+                var playlists = await api.GetPlaylistsAsync();
+                _library.Items.Clear(); foreach (var item in libraries) _library.Items.Add(item);
+                _library.SelectedItem = libraries.FirstOrDefault(l => l.Id == selectedLibrary) ?? libraries.FirstOrDefault();
+                _playlist.Items.Clear(); _playlist.Items.Add(new ProPresenterItem("", "Library only"));
+                foreach (var item in playlists) _playlist.Items.Add(item);
+                _playlist.SelectedItem = playlists.FirstOrDefault(p => p.Id == selectedPlaylist) ?? _playlist.Items[0];
+                var bibles = new ProPresenterBibleCatalog(_bibles.Text.Trim()).Discover();
+                _status.Text = $"Connected: {version.Description}. Bibles: {string.Join(", ", bibles.Select(b => b.Code))}. Preview will validate the selected template and library folder.";
+            }
+            catch (Exception e) { _status.Text = e.Message; }
+            finally { connect.IsEnabled = true; }
+        };
+        Children.Add(connect);
+        AddField("Destination library", _library);
+        AddField("Playlist (optional; item mapping is reviewed before sync)", _playlist);
+        AddPath("Library folder on this computer (must match the selected library)", _directory, false);
+        AddPath("Exported scripture template (.pro)", _template, true);
+        AddPath("Installed Bible folder", _bibles, false);
+        Children.Add(_status);
+    }
+
+    public string Software => _software.SelectedItem as string ?? "OpenLP";
+    public ProPresenterConfiguration Configuration => new()
+    {
+        Address = _address.Text.Trim(), TemplatePath = _template.Text.Trim(), BibleDirectory = _bibles.Text.Trim(),
+        LibraryDirectory = _directory.Text.Trim(), LibraryId = (_library.SelectedItem as ProPresenterItem)?.Id ?? "",
+        LibraryName = (_library.SelectedItem as ProPresenterItem)?.Name ?? "",
+        PlaylistId = (_playlist.SelectedItem as ProPresenterItem)?.Id ?? "", PlaylistName = (_playlist.SelectedItem as ProPresenterItem)?.Name ?? ""
+    };
+    public static HttpClient NewHttp() => new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(15) };
+    private void AddField(string label, Control control)
+    {
+        Children.Add(new TextBlock { Text = label, Margin = new(0, 12, 0, 4), TextWrapping = TextWrapping.Wrap });
+        control.MinHeight = 30;
+        Children.Add(control);
+    }
+    private void AddPath(string label, TextBox box, bool file)
+    {
+        AddField(label, box);
+        var browse = new Button { Content = "Browse…", HorizontalAlignment = HorizontalAlignment.Right, Margin = new(0, 4, 0, 0), Padding = new(12, 3, 12, 3) };
+        browse.Click += (_, _) =>
+        {
+            if (file)
+            {
+                var dialog = new OpenFileDialog { Filter = "ProPresenter presentation|*.pro" };
+                if (dialog.ShowDialog() == true) box.Text = dialog.FileName;
+            }
+            else
+            {
+                var dialog = new OpenFolderDialog();
+                if (dialog.ShowDialog() == true) box.Text = dialog.FolderName;
+            }
+        };
+        Children.Add(browse);
+    }
+}

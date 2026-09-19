@@ -1,7 +1,8 @@
 using Google.Protobuf;
 using Pro.SerializationInterop.RVProtoData;
 using ScriptureSync.Core.Bibles;
-using ScriptureSync.ProPresenter.TemplateSpike;
+using ScriptureSync.ProPresenter;
+
 
 namespace ScriptureSync.Tests;
 
@@ -17,7 +18,7 @@ public sealed class ProPresenterTemplateTests
         var original = template.ToByteArray();
         var passage = new PassageText("TEST", new("John", 3, $"1-{count}"),
             Enumerable.Range(1, count).Select(n => new VerseText("John", 3, n, $"Synthetic verse {n}.")).ToArray());
-        var output = TemplateWriter.Create(template, passage);
+        var output = ProPresenterDocumentWriter.Create(template, passage);
         Assert.Equal(original, template.ToByteArray());
         Assert.NotEqual(template.Uuid, output.Uuid);
         Assert.Equal(count, output.Cues.Count);
@@ -39,9 +40,9 @@ public sealed class ProPresenterTemplateTests
     [Fact]
     public void Escapes_rtf_metacharacters_and_unicode_without_altering_prefix()
     {
-        var output = TemplateWriter.ReplaceSimpleRtf(ByteString.CopyFromUtf8("{\\rtf0\\fs110\\cb2 Sample}"), "A{B}\\é");
+        var output = ProPresenterDocumentWriter.ReplaceSimpleRtf(ByteString.CopyFromUtf8("{\\rtf0\\fs110\\cb2 Sample}"), "A{B}\\é");
         Assert.Equal("{\\rtf0\\fs110\\cb2 A\\{B\\}\\\\\\u233?}", output.ToStringUtf8());
-        Assert.Throws<InvalidDataException>(() => TemplateWriter.ReplaceSimpleRtf(
+        Assert.Throws<InvalidDataException>(() => ProPresenterDocumentWriter.ReplaceSimpleRtf(
             ByteString.CopyFromUtf8("{\\rtf0\\cb2 Styled \\b text}"), "Replacement"));
     }
 
@@ -50,8 +51,8 @@ public sealed class ProPresenterTemplateTests
     {
         var template = Fixture();
         template.Cues[0].CompletionTargetUuid = Id("another-cue");
-        Assert.Throws<InvalidDataException>(() => TemplateWriter.Create(template,
-            new("TEST", new("John", 3, "1"), [new("John", 3, 1, "Synthetic.")])));
+        Assert.Throws<InvalidDataException>(() => ProPresenterDocumentWriter.Create(template,
+            new PassageText("TEST", new("John", 3, "1"), [new("John", 3, 1, "Synthetic.")])));
     }
 
     [Fact]
@@ -59,11 +60,11 @@ public sealed class ProPresenterTemplateTests
     {
         var bytes = Fixture().ToByteArray().Concat(new byte[] { 0xA0, 0x06, 0x7B }).ToArray(); // field 100 = 123
         var template = Presentation.Parser.ParseFrom(bytes);
-        var output = TemplateWriter.Create(template, new("TEST", new("John", 3, "1"), [new("John", 3, 1, "Synthetic.")]));
+        var output = ProPresenterDocumentWriter.Create(template, new PassageText("TEST", new("John", 3, "1"), [new("John", 3, 1, "Synthetic.")]));
         Assert.Equal(new byte[] { 0xA0, 0x06, 0x7B }, output.ToByteArray()[^3..]);
     }
 
-    private static Presentation Fixture()
+    internal static Presentation Fixture()
     {
         var slide = new Slide { Uuid = Id("slide") };
         foreach (var name in new[] { "Reference", "Verse" })

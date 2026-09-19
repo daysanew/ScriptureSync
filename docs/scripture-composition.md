@@ -59,3 +59,5 @@ This step adds no API calls or writes to the ProPresenter library.
 Next: define the production Bible-provider and publisher contracts around these
 models, then adapt the validated ProPresenter paths. Publishing configuration,
 ownership, backups, and PCO mapping still require their own work before UI sync.
+
+The production integration now consumes these contracts; see [current integration status](propresenter-integration.md). The validation and next-step notes above describe the earlier composition-only commit.

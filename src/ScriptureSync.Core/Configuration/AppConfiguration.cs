@@ -2,6 +2,8 @@ namespace ScriptureSync.Core.Configuration;
 
 public sealed class AppConfiguration
 {
+    public string PresentationSoftware { get; init; } = "OpenLP";
+    public ProPresenterConfiguration ProPresenter { get; init; } = new();
     public string DefaultBibleTranslation { get; init; } = "KJV";
 
     public int PlanWindowDays { get; init; } = 7;
