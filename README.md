@@ -25,6 +25,17 @@ dotnet build ScriptureSync.slnx
 dotnet test tests\ScriptureSync.Tests\ScriptureSync.Tests.csproj
 ```
 
+## ProPresenter investigation
+
+ProPresenter support is experimental and available only through standalone
+diagnostic tools. The WPF application still syncs to OpenLP. See the
+[feasibility assessment](docs/propresenter-feasibility.md),
+[API diagnostic](tools/ScriptureSync.ProPresenter.Spike/README.md),
+[Bible reader results](docs/propresenter-bible-spike.md), and
+[template-file experiment](tools/ScriptureSync.ProPresenter.TemplateSpike/README.md).
+The initial generated presentation passed user-reported manual checks; broader
+template/version validation is still needed before production integration.
+
 ## Install
 
 Run **Install ScriptureSync.cmd** from the repository root. The script builds

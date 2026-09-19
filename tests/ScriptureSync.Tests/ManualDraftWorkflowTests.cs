@@ -233,6 +233,54 @@ public sealed class ManualDraftWorkflowTests : IDisposable
         Assert.All(viewModel.Items, item => Assert.StartsWith("Planning Center", item.Source));
     }
 
+    [Fact]
+    public async Task Missing_translation_skips_its_remaining_passages_but_continues_other_translations()
+    {
+        var client = new FakeOpenLpClient { MissingTranslation = "KJV" };
+        var viewModel = CreateViewModel(client);
+        viewModel.AddPastedText("John 3:16; Romans 8:28 (KJV & NLT)\nPsalm 23 (NLT)");
+
+        await viewModel.SyncToOpenLpAsync();
+
+        Assert.Equal(
+            [("KJV", "John 3:16"), ("NLT", "John 3:16"), ("NLT", "Romans 8:28"), ("NLT", "Psalm 23")],
+            client.AddAttempts);
+        Assert.Equal("Added 2; Translation not installed: KJV", viewModel.Items[0].Status);
+        Assert.Equal("Added 1 to OpenLP", viewModel.Items[1].Status);
+        Assert.Equal("Sync complete • 3 added • 1 need attention", viewModel.OpenLpStatus);
+        Assert.False(viewModel.IsSyncing);
+    }
+
+    [Fact]
+    public async Task Plugin_failure_during_prepare_preserves_error_and_does_not_add()
+    {
+        var client = new FakeOpenLpClient { PrepareException = new OpenLpException("Not ready") };
+        var viewModel = CreateViewModel(client);
+        viewModel.AddPastedText("John 3:16 (KJV)");
+
+        await viewModel.SyncToOpenLpAsync();
+
+        Assert.Empty(client.AddAttempts);
+        Assert.Equal("Plugin error • Not ready", viewModel.OpenLpStatus);
+        Assert.False(viewModel.IsSyncing);
+        Assert.True(viewModel.SyncCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Plugin_add_failure_continues_later_rows_without_counting_failed_addition()
+    {
+        var client = new FakeOpenLpClient { FailOnReference = "John 3:16" };
+        var viewModel = CreateViewModel(client);
+        viewModel.AddPastedText("John 3:16 (KJV)\nPsalm 23 (KJV)");
+
+        await viewModel.SyncToOpenLpAsync();
+
+        Assert.Equal("KJV: Add rejected", viewModel.Items[0].Status);
+        Assert.Equal("Added 1 to OpenLP", viewModel.Items[1].Status);
+        Assert.Equal("Sync complete • 1 added • 1 need attention", viewModel.OpenLpStatus);
+        Assert.Equal(2, client.AddAttempts.Count);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_temporaryRoot))
@@ -248,7 +296,7 @@ public sealed class ManualDraftWorkflowTests : IDisposable
         return new MainWindowViewModel(
             new ScriptureReferenceParser(),
             new ManualDraftStore(paths, logger),
-            openLpClient,
+            openLpClient is null ? null : new OpenLpSyncDestination(openLpClient),
             logger);
     }
 
@@ -256,6 +304,8 @@ public sealed class ManualDraftWorkflowTests : IDisposable
     {
         public string? MissingReference { get; init; }
         public string? DisconnectOnReference { get; init; }
+        public string? MissingTranslation { get; init; }
+        public string? FailOnReference { get; init; }
         public Exception? PrepareException { get; init; }
         public List<(string Translation, string Reference)> AddAttempts { get; } = [];
 
@@ -284,6 +334,10 @@ public sealed class ManualDraftWorkflowTests : IDisposable
             CancellationToken cancellationToken = default)
         {
             AddAttempts.Add((translationCode, reference));
+            if (translationCode == MissingTranslation)
+                throw new OpenLpBibleNotInstalledException(translationCode);
+            if (reference == FailOnReference)
+                throw new OpenLpException("Add rejected");
             if (reference == DisconnectOnReference)
             {
                 throw new HttpRequestException("OpenLP exited.");
