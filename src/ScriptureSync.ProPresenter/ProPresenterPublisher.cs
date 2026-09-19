@@ -16,6 +16,7 @@ public sealed record ProPresenterPublishPlan(string Identity, string Key, string
 public sealed class ProPresenterPublisher(
     ProPresenterConfiguration configuration, string stateDirectory, IProPresenterApiClient api) : IPresentationPublisher
 {
+    private string _libraryId = configuration.LibraryId;
     private string StatePath => Path.Combine(stateDirectory, "ownership.json");
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -25,8 +26,18 @@ public sealed class ProPresenterPublisher(
         if (!Directory.Exists(configuration.LibraryDirectory)) throw new InvalidDataException("Choose the existing folder for the selected ProPresenter library.");
         if (!Guid.TryParse(configuration.LibraryId, out _)) throw new InvalidDataException("Connect and select a ProPresenter library in Settings.");
         await api.GetVersionAsync(token);
-        if (!(await api.GetLibrariesAsync(token)).Any(l => l.Id.Equals(configuration.LibraryId, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidDataException("The selected library is no longer available. Select it again in Settings.");
+        var libraries = await api.GetLibrariesAsync(token);
+        if (!libraries.Any(l => l.Id.Equals(_libraryId, StringComparison.OrdinalIgnoreCase)))
+        {
+            // Windows ProPresenter can assign new library UUIDs when it restarts.
+            // Resolve only an unambiguous saved name matching the configured folder.
+            var matches = libraries.Where(l => l.Name == configuration.LibraryName &&
+                string.Equals(Path.GetFileName(Path.TrimEndingDirectorySeparator(configuration.LibraryDirectory)), l.Name,
+                    StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (matches.Length != 1)
+                throw new InvalidDataException("The selected library is no longer available. Select it again in Settings.");
+            _libraryId = matches[0].Id;
+        }
     }
 
     public ProPresenterPublishPlan Preview(ScripturePresentation content, string identity)
@@ -133,7 +144,7 @@ public sealed class ProPresenterPublisher(
         }
         for (var attempt = 0; attempt < 20; attempt++)
         {
-            var items = await api.GetPresentationsAsync(configuration.LibraryId, token);
+            var items = await api.GetPresentationsAsync(_libraryId, token);
             if (items.Any(item => item.Id.Equals(plan.Id, StringComparison.OrdinalIgnoreCase)))
             {
                 var slides = await api.GetPresentationSlideTextsAsync(plan.Id, token);

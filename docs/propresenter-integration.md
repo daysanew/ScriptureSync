@@ -35,13 +35,13 @@ Verified on Windows with ProPresenter 21.4.2 (352584193), API v1, local installe
 
 Live testing found two implementation requirements: Windows ProPresenter observes copied files but not atomic rename placement; playlist PUT requires `arrangement_name` and `arrangement_uuid`, although the published schema omits the latter. New playlist entries must use the presentation UUID as their item UUID.
 
-**Still blocking feature completion:** safe linking into a genuine PCO-connected placeholder has not been proven. Both synthetic and genuine PCO-connected placeholders rejected replacement with their existing identity (HTTP 404). The code blocks PCO playlist mutation and placeholder replacement rather than claiming success. Desktop visual inspection of the new settings/preview is also pending because the computer-use runtime could not initialize; a WPF STA construction/layout test covers settings creation.
+**Still blocking feature completion:** the native linking prototype is verified, but it is not integrated into the app workflow. Both synthetic and genuine PCO-connected placeholders rejected replacement with their existing identity (HTTP 404). The code blocks PCO playlist mutation and placeholder replacement rather than claiming success. Desktop visual inspection of the new settings/preview is also pending because the computer-use runtime could not initialize; a WPF STA construction/layout test covers settings creation.
 
 PR #2 should remain draft until native PCO linking and the visual/manual workflow checks are complete. The earlier feasibility and spike documents are historical evidence, not a claim that this integration is finished.
 
 ## Schema provenance
 
-The production project now contains the 32 transitive protobuf schemas formerly held by the template spike, pinned to `greyshirtguy/ProPresenter7-Proto` commit `bf6325d243897a6c64dde46eec803ec29f5f8569`, with its MIT license and version marker. These are reverse-engineered schemas; arbitrary templates and untested ProPresenter versions are not supported by implication. The diagnostic tools reference the same production implementation.
+The production project contains the 32 transitive protobuf schemas formerly held by the template spike plus the pinned `playlist.proto` and `planningCenter.proto` definitions, pinned to `greyshirtguy/ProPresenter7-Proto` commit `bf6325d243897a6c64dde46eec803ec29f5f8569`, with its MIT license and version marker. These are reverse-engineered schemas; arbitrary templates and untested ProPresenter versions are not supported by implication. The diagnostic tools reference the same production implementation.
 
 Further live verification found that even an unchanged ordinary placeholder receives a new UUID on playlist PUT. Mixed playlists are now blocked before any file/playlist publishing, pending a verified preservation strategy. Final Release regression suite: 129 passed, 0 failed.
 
@@ -60,3 +60,39 @@ The public API response omits that full plan-item metadata. A successful native
 manual link and a before/after comparison are needed before designing further
 linking logic; changing only `is_pco` or replacing the outer UUID is not evidence
 that the real plan connection is preserved. Automatic PCO linking remains blocked.
+
+### Native-link prototype and one-button investigation
+
+The user manually linked the prepared PCO item. Comparing the saved native files
+confirmed that ProPresenter retains the outer playlist-item UUID and full PCO
+PlanItem, and adds a nested linked presentation containing its file path and
+arrangement UUID. The prototype reproduces those fields without rebuilding the
+PCO plan or other playlists. It preserves unknown protobuf fields and rejects
+mismatched plan/item identities, unowned target presentations, and replacement
+of existing links unless explicitly requested by the caller.
+
+With the user having saved and closed ProPresenter, a validated candidate was
+applied with a backup, then ProPresenter was reopened. The API confirmed the
+same outer item UUID, `is_pco: true`, and the new owned John 3:16 presentation.
+The persisted PCO plan and item metadata compared equal after restart. Repeat
+publication was Unchanged and reused the existing link. Refreshing the plan
+from PCO after linking remains an additional acceptance check.
+
+The restart changed ProPresenter's library UUID. Publishing now recovers only
+when the saved library name uniquely matches an API library and the configured
+folder's name; ambiguous or missing matches still require Settings.
+
+The requested final workflow is: import the selected plan in ProPresenter,
+close normally, generate/link scripture, reopen, and verify. The official
+API's playlist-create operation supports only ordinary playlists and groups,
+not importing a PCO plan. No documented command-line or URL-scheme alternative
+was found. Desktop automation of the native PCO-import dialog remains untested:
+the computer-use runtime failed before listing windows, including after reset,
+with `failed to write kernel assets: The system cannot find the path specified.
+(os error 3)`. This is a test-environment blocker, not proof that UI automation
+is impossible. No UI-import automation or one-button completion is claimed.
+
+The native class transforms a supplied byte array only; it does not write live
+playlist files or close processes. The app still blocks PCO playlist mutation
+until a guarded orchestration workflow is implemented and tested. Latest full
+Debug regression suite: 136 passed, 0 failed. PR remains draft.

@@ -24,6 +24,24 @@ public sealed class ProPresenterPublishingTests : IDisposable
     private static ScripturePresentation Content(string text = "Synthetic verse.") => new("Psalm 23:1 (TEST)", [new("Psalm 23:1", text, "TEST")]);
 
     [Fact]
+    public async Task Restart_resolves_changed_library_uuid_by_unique_saved_name_and_folder()
+    {
+        var newId = Guid.NewGuid().ToString();
+        _api.Libraries = [new(newId, "library")];
+        var publisher = new ProPresenterPublisher(_config with { LibraryName = "library" }, Path.Combine(_root, "state"), _api);
+        await publisher.PublishAsync(Content(), "draft");
+        Assert.Equal(newId, _api.LastLibraryId);
+    }
+
+    [Fact]
+    public async Task Restart_does_not_guess_between_duplicate_library_names()
+    {
+        _api.Libraries = [new(Guid.NewGuid().ToString(), "library"), new(Guid.NewGuid().ToString(), "library")];
+        var publisher = new ProPresenterPublisher(_config with { LibraryName = "library" }, Path.Combine(_root, "state"), _api);
+        await Assert.ThrowsAsync<InvalidDataException>(() => publisher.ValidateAsync());
+    }
+
+    [Fact]
     public async Task Creates_updates_and_reuses_identity_across_restart_with_backup()
     {
         var first = await Publisher().PublishAsync(Content(), "draft-one");
@@ -89,9 +107,15 @@ public sealed class ProPresenterPublishingTests : IDisposable
     private sealed class FakeApi(ProPresenterConfiguration config) : IProPresenterApiClient
     {
         public bool Offline { get; set; }
+        public IReadOnlyList<ProPresenterItem> Libraries { get; set; } = [new(config.LibraryId, "Test")];
+        public string? LastLibraryId { get; private set; }
         public Task<ProPresenterVersion> GetVersionAsync(CancellationToken token = default) => Offline ? throw new HttpRequestException("Offline") : Task.FromResult(new ProPresenterVersion("Test", "v1", "windows"));
-        public Task<IReadOnlyList<ProPresenterItem>> GetLibrariesAsync(CancellationToken token = default) => Task.FromResult<IReadOnlyList<ProPresenterItem>>([new(config.LibraryId, "Test")]);
-        public Task<IReadOnlyList<ProPresenterItem>> GetPresentationsAsync(string id, CancellationToken token = default) => Task.FromResult<IReadOnlyList<ProPresenterItem>>(Directory.GetFiles(config.LibraryDirectory, "*.pro").Select(p => Presentation.Parser.ParseFrom(File.ReadAllBytes(p))).Select(p => new ProPresenterItem(p.Uuid.String, p.Name)).ToArray());
+        public Task<IReadOnlyList<ProPresenterItem>> GetLibrariesAsync(CancellationToken token = default) => Task.FromResult(Libraries);
+        public Task<IReadOnlyList<ProPresenterItem>> GetPresentationsAsync(string id, CancellationToken token = default)
+        {
+            LastLibraryId = id;
+            return Task.FromResult<IReadOnlyList<ProPresenterItem>>(Directory.GetFiles(config.LibraryDirectory, "*.pro").Select(p => Presentation.Parser.ParseFrom(File.ReadAllBytes(p))).Select(p => new ProPresenterItem(p.Uuid.String, p.Name)).ToArray());
+        }
         public Task<IReadOnlyList<string>> GetPresentationSlideTextsAsync(string id, CancellationToken token = default)
         {
             var doc = Directory.GetFiles(config.LibraryDirectory, "*.pro").Select(p => Presentation.Parser.ParseFrom(File.ReadAllBytes(p))).Single(p => p.Uuid.String == id);
