@@ -5,6 +5,7 @@ using Microsoft.Win32;
 using ScriptureSync.Core.Configuration;
 using ScriptureSync.ProPresenter;
 using ScriptureSync.OpenLP;
+using System.IO;
 
 namespace ScriptureSync.App;
 
@@ -19,7 +20,7 @@ public sealed class ProPresenterSettingsPanel : StackPanel
     private readonly ComboBox _playlist = new() { DisplayMemberPath = "Name", Height = 30 };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 12, 0, 0) };
 
-    public ProPresenterSettingsPanel(AppConfiguration configuration)
+    public ProPresenterSettingsPanel(AppConfiguration configuration, string? defaultLibraryRoot = null)
     {
         Margin = new Thickness(24);
         _software.SelectedItem = configuration.PresentationSoftware;
@@ -29,6 +30,21 @@ public sealed class ProPresenterSettingsPanel : StackPanel
         _bibles.Text = saved.BibleDirectory;
         _directory.Text = saved.LibraryDirectory;
         _library.Items.Add(new ProPresenterItem(saved.LibraryId, saved.LibraryName)); _library.SelectedIndex = 0;
+        string? automaticFolder = ProPresenterFolderDefaults.FindLibrary(saved.LibraryName, saved.Address, defaultLibraryRoot);
+        if (!string.Equals(_directory.Text, automaticFolder, StringComparison.OrdinalIgnoreCase)) automaticFolder = null;
+        void FillDefaultLibrary()
+        {
+            if (_library.SelectedItem is not ProPresenterItem library || string.IsNullOrEmpty(library.Name)) return;
+            if (!string.IsNullOrWhiteSpace(_directory.Text) &&
+                !string.Equals(_directory.Text, automaticFolder, StringComparison.OrdinalIgnoreCase)) return;
+            automaticFolder = ProPresenterFolderDefaults.FindLibrary(library.Name, _address.Text.Trim(), defaultLibraryRoot);
+            _directory.Text = automaticFolder ?? "";
+        }
+        _library.SelectionChanged += (_, _) => FillDefaultLibrary();
+        _address.TextChanged += (_, _) => FillDefaultLibrary();
+        FillDefaultLibrary();
+        if (string.IsNullOrWhiteSpace(_bibles.Text) && Directory.Exists(ProPresenterFolderDefaults.BibleDirectory))
+            _bibles.Text = ProPresenterFolderDefaults.BibleDirectory;
         _playlist.Items.Add(new ProPresenterItem(saved.PlaylistId, string.IsNullOrEmpty(saved.PlaylistName) ? "Library only" : saved.PlaylistName)); _playlist.SelectedIndex = 0;
         AddField("Presentation software", _software);
         AddField("ProPresenter API address (from Network settings)", _address);
@@ -60,8 +76,25 @@ public sealed class ProPresenterSettingsPanel : StackPanel
         AddField("Destination library", _library);
         AddField("Playlist (optional; item mapping is reviewed before sync)", _playlist);
         AddPath("Library folder on this computer (must match the selected library)", _directory, false);
+        Children.Add(new TextBlock
+        {
+            Text = "The library folder fills automatically when a matching folder exists in ProPresenter’s default local workspace. Custom folders can still be selected with Browse.",
+            TextWrapping = TextWrapping.Wrap, Margin = new(0, 4, 0, 0)
+        });
         AddPath("Exported scripture template (.pro)", _template, true);
         AddPath("Installed Bible folder", _bibles, false);
+        var defaults = new Button { Content = "Use default folders", HorizontalAlignment = HorizontalAlignment.Left, Padding = new(12, 5, 12, 5), Margin = new(0, 10, 0, 0) };
+        defaults.Click += (_, _) =>
+        {
+            automaticFolder = (_library.SelectedItem is ProPresenterItem library)
+                ? ProPresenterFolderDefaults.FindLibrary(library.Name, _address.Text.Trim(), defaultLibraryRoot) : null;
+            if (automaticFolder is not null) _directory.Text = automaticFolder;
+            if (Directory.Exists(ProPresenterFolderDefaults.BibleDirectory)) _bibles.Text = ProPresenterFolderDefaults.BibleDirectory;
+            _status.Text = automaticFolder is null
+                ? "No matching default local library folder was found. Select your library folder with Browse."
+                : "Default folders selected. Your exported scripture template remains a separate file selection.";
+        };
+        Children.Add(defaults);
         Children.Add(_status);
         // Keep both sets of controls alive so switching destinations retains unsaved values.
         var proPresenter = new StackPanel();

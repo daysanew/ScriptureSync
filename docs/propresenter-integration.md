@@ -5,7 +5,7 @@ The app now supports Settings > Presentation software > ProPresenter, installed-
 ## Setup
 
 1. Run ProPresenter and enable its network API. Copy its address and port into ScriptureSync settings, then click **Test connection / load destinations**.
-2. Select a library and its matching directory on this PC. Library publishing requires access to that actual directory; selecting a remote API alone is insufficient.
+2. Select a library. For a local API address, ScriptureSync fills its folder when it exists under `%APPDATA%\RenewedVision\ProPresenter\LocalWorkspaces\ProPresenter\Libraries`. It follows library changes while retaining manually chosen custom paths. **Use default folders** restores detected library/Bible folders; use Browse for custom workspaces. Library publishing requires access to the actual directory; selecting a remote API alone is insufficient.
 3. Export a simple Bible presentation as a `.pro` template. Its first slide must have exactly two text boxes named **Reference** and **Verse**, one slide action, one cue group, and plain text with consistent formatting. Timelines, linked elements, alternate text, and mixed formatting within the text run are rejected with an explanation.
 4. Select the installed ProPresenter Bible directory. Translations are matched by package abbreviation, case-insensitively. The reader supports installed USX 3 packages and never modifies them. No Bible text is bundled.
 5. Optionally select an empty or presentation-only ordinary playlist, or choose **Library only**. PCO-linked playlists, mixed playlists, and placeholder replacement are currently blocked pending validation of a method that preserves their PCO connection.
