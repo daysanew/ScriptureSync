@@ -24,6 +24,22 @@ public sealed class ProPresenterWindowTests
                 Assert.Equal(2, tabs.Items.Count);
                 Assert.Equal("OpenLP", window.PresentationSoftware);
                 Assert.Single(root.Children.OfType<StackPanel>());
+                var softwareTab = (TabItem)tabs.Items[1];
+                var panel = Assert.IsType<ProPresenterSettingsPanel>(((ScrollViewer)softwareTab.Content).Content);
+                var selector = Assert.Single(panel.Children.OfType<ComboBox>());
+                var sections = panel.Children.OfType<StackPanel>().ToArray();
+                Assert.Equal(Visibility.Visible, sections[0].Visibility);
+                Assert.Equal(Visibility.Collapsed, sections[1].Visibility);
+                selector.SelectedItem = "ProPresenter";
+                Assert.Equal(Visibility.Collapsed, sections[0].Visibility);
+                Assert.Equal(Visibility.Visible, sections[1].Visibility);
+                var address = sections[1].Children.OfType<TextBox>().First();
+                address.Text = "http://127.0.0.1:49627";
+                selector.SelectedItem = "OpenLP";
+                Assert.Equal(Visibility.Visible, sections[0].Visibility);
+                Assert.Equal(Visibility.Collapsed, sections[1].Visibility);
+                selector.SelectedItem = "ProPresenter";
+                Assert.Equal("http://127.0.0.1:49627", panel.Configuration.Address);
                 window.Close();
             }
             catch (Exception e) { failure = e; }

@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using Microsoft.Win32;
 using ScriptureSync.Core.Configuration;
 using ScriptureSync.ProPresenter;
+using ScriptureSync.OpenLP;
 
 namespace ScriptureSync.App;
 
@@ -62,6 +63,56 @@ public sealed class ProPresenterSettingsPanel : StackPanel
         AddPath("Exported scripture template (.pro)", _template, true);
         AddPath("Installed Bible folder", _bibles, false);
         Children.Add(_status);
+        // Keep both sets of controls alive so switching destinations retains unsaved values.
+        var proPresenter = new StackPanel();
+        while (Children.Count > 2)
+        {
+            var child = Children[2];
+            Children.RemoveAt(2);
+            proPresenter.Children.Add(child);
+        }
+        var openLp = new StackPanel();
+        openLp.Children.Add(new TextBlock
+        {
+            Text = "OpenLP connection", FontWeight = FontWeights.SemiBold, Margin = new(0, 18, 0, 8)
+        });
+        openLp.Children.Add(new TextBlock
+        {
+            Text = "Run OpenLP on this computer and enable ScriptureSync under Settings > Manage Plugins. ScriptureSync adds passages to the current OpenLP service.",
+            TextWrapping = TextWrapping.Wrap
+        });
+        openLp.Children.Add(new TextBlock { Text = $"Plugin address: {configuration.OpenLpBridgeAddress}", Margin = new(0, 12, 0, 8), TextWrapping = TextWrapping.Wrap });
+        openLp.Children.Add(new TextBlock
+        {
+            Text = "Set the default Bible translation on the General / Planning Center tab. Translation codes must match the short names of Bibles installed in OpenLP.",
+            TextWrapping = TextWrapping.Wrap
+        });
+        var openLpStatus = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new(0, 10, 0, 0) };
+        var checkOpenLp = new Button { Content = "Test OpenLP connection", Height = 34, Margin = new(0, 12, 0, 0) };
+        checkOpenLp.Click += async (_, _) =>
+        {
+            checkOpenLp.IsEnabled = false;
+            try
+            {
+                using var client = new OpenLpBridgeClient(configuration.OpenLpBridgeAddress);
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                var info = await client.GetConnectionInfoAsync(timeout.Token);
+                openLpStatus.Text = $"Connected. Installed Bibles: {string.Join(", ", info.InstalledBibles.Keys)}.";
+            }
+            catch (Exception e) { openLpStatus.Text = e.Message; }
+            finally { checkOpenLp.IsEnabled = true; }
+        };
+        openLp.Children.Add(checkOpenLp);
+        openLp.Children.Add(openLpStatus);
+        Children.Add(openLp);
+        Children.Add(proPresenter);
+        void ShowSelectedSoftware()
+        {
+            openLp.Visibility = Software == "OpenLP" ? Visibility.Visible : Visibility.Collapsed;
+            proPresenter.Visibility = Software == "ProPresenter" ? Visibility.Visible : Visibility.Collapsed;
+        }
+        _software.SelectionChanged += (_, _) => ShowSelectedSoftware();
+        ShowSelectedSoftware();
     }
 
     public string Software => _software.SelectedItem as string ?? "OpenLP";
