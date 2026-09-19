@@ -2,11 +2,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ScriptureSync.Core.Models;
+using ScriptureSync.Core.Bibles;
 
 namespace ScriptureSync.ProPresenter.BibleSpike;
-
-public sealed record VerseText(string Book, int Chapter, int Verse, string Text);
-public sealed record PassageText(string Translation, PassageReference Reference, IReadOnlyList<VerseText> Verses);
 
 public sealed class UsxBibleReader
 {

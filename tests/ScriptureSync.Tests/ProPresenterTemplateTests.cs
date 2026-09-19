@@ -1,6 +1,6 @@
 using Google.Protobuf;
 using Pro.SerializationInterop.RVProtoData;
-using ScriptureSync.ProPresenter.BibleSpike;
+using ScriptureSync.Core.Bibles;
 using ScriptureSync.ProPresenter.TemplateSpike;
 
 namespace ScriptureSync.Tests;

@@ -33,6 +33,8 @@ diagnostic tools. The WPF application still syncs to OpenLP. See the
 [API diagnostic](tools/ScriptureSync.ProPresenter.Spike/README.md),
 [Bible reader results](docs/propresenter-bible-spike.md), and
 [template-file experiment](tools/ScriptureSync.ProPresenter.TemplateSpike/README.md).
+Shared verse-to-slide behavior is documented in the
+[composition contract](docs/scripture-composition.md).
 The initial generated presentation passed user-reported manual checks; broader
 template/version validation is still needed before production integration.
 

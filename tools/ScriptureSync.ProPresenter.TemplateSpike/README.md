@@ -39,6 +39,11 @@ local. The original export and the live ProPresenter library are not written.
 
 ## Transformation scope
 
+The writer now consumes Core's shared Bible models and
+`ScripturePresentationComposer` for logical slide content; see
+[composition contracts](../../docs/scripture-composition.md). The template
+format restrictions below remain in place.
+
 The writer clones the first cue as the template for each verse, preserves its
 protobuf styling/notes/actions, replaces the two named text fields, rebuilds cue
 membership, and remaps defined UUIDs and their references. It updates the Bible

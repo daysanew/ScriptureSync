@@ -2,7 +2,8 @@ using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Pro.SerializationInterop.RVProtoData;
-using ScriptureSync.ProPresenter.BibleSpike;
+using ScriptureSync.Core.Bibles;
+using ScriptureSync.Core.Presentations;
 
 namespace ScriptureSync.ProPresenter.TemplateSpike;
 
@@ -10,6 +11,7 @@ public static class TemplateWriter
 {
     public static Presentation Create(Presentation template, PassageText passage)
     {
+        var composed = new ScripturePresentationComposer().Compose(passage);
         if (template.Cues.Count == 0 || template.CueGroups.Count != 1 ||
             template.BibleReference?.BookName != passage.Reference.Book ||
             template.BibleReference.TranslationInternalAbbreviation != passage.Translation ||
@@ -35,20 +37,20 @@ public static class TemplateWriter
                 throw new InvalidDataException($"Expected exactly one named {name} text box.");
 
         var output = template.Clone();
-        output.Name = $"ScriptureSync TEST {passage.Reference} ({passage.Translation})";
+        output.Name = $"ScriptureSync TEST {composed.Title}";
         output.Cues.Clear();
         output.CueGroups[0].CueIdentifiers.Clear();
-        foreach (var verse in passage.Verses)
+        foreach (var logicalSlide in composed.Slides)
         {
             var cue = source.Clone();
-            cue.Name = $"{verse.Book} {verse.Chapter}:{verse.Verse}";
+            cue.Name = logicalSlide.Reference;
             foreach (var element in cue.Actions[0].Slide.Presentation.BaseSlide.Elements)
             {
                 var text = element.Element_.Text;
                 if (text.AlternateTexts.Count > 0)
                     throw new InvalidDataException("Alternate text is outside this spike's supported template shape.");
                 text.RtfData = ReplaceSimpleRtf(text.RtfData,
-                    element.Element_.Name == "Verse" ? verse.Text : $"{cue.Name} ({passage.Translation})");
+                    element.Element_.Name == "Verse" ? logicalSlide.Text : $"{logicalSlide.Reference} ({logicalSlide.Translation})");
             }
             RemapDefinedIds(cue);
             output.Cues.Add(cue);
