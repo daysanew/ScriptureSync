@@ -8,4 +8,9 @@
   <Folder Name="/tests/">
     <Project Path="tests/ScriptureSync.Tests/ScriptureSync.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/ScriptureSync.ProPresenter.TemplateSpike/ScriptureSync.ProPresenter.TemplateSpike.csproj" />
+    <Project Path="tools/ScriptureSync.ProPresenter.BibleSpike/ScriptureSync.ProPresenter.BibleSpike.csproj" />
+    <Project Path="tools/ScriptureSync.ProPresenter.Spike/ScriptureSync.ProPresenter.Spike.csproj" />
+  </Folder>
 </Solution>

@@ -19,6 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\tools\ScriptureSync.ProPresenter.Spike\ScriptureSync.ProPresenter.Spike.csproj" />
+    <ProjectReference Include="..\..\tools\ScriptureSync.ProPresenter.BibleSpike\ScriptureSync.ProPresenter.BibleSpike.csproj" />
+    <ProjectReference Include="..\..\tools\ScriptureSync.ProPresenter.TemplateSpike\ScriptureSync.ProPresenter.TemplateSpike.csproj" />
     <ProjectReference Include="..\..\src\ScriptureSync.App\ScriptureSync.App.csproj" />
     <ProjectReference Include="..\..\src\ScriptureSync.Core\ScriptureSync.Core.csproj" />
     <ProjectReference Include="..\..\src\ScriptureSync.OpenLP\ScriptureSync.OpenLP.csproj" />
