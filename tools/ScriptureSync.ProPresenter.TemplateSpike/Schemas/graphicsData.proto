@@ -668,4 +668,3 @@ message Media {
     .rv.data.Media.WebContentTypeProperties web_content = 8;
   }
 }
-

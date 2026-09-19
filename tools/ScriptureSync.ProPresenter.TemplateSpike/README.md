@@ -9,8 +9,8 @@ wired into the application UI or installer.
 
 Source: [greyshirtguy/ProPresenter7-Proto](https://github.com/greyshirtguy/ProPresenter7-Proto),
 pinned repository commit `bf6325d243897a6c64dde46eec803ec29f5f8569`.
-The 32 files in `Schemas` are the unmodified transitive imports of
-`autogen-proto/presentation.proto`; the upstream MIT license is included.
+The 32 files in `Schemas` are the transitive imports of
+`autogen-proto/presentation.proto`; the upstream MIT license is included. Only trailing blank lines were normalized.
 Google well-known descriptor imports are provided by the build tooling.
 
 The latest schema-directory commit observed was
@@ -22,7 +22,7 @@ Renewed Vision; matching major/minor versions is not itself compatibility proof.
 
 Pinned tooling: Google.Protobuf 3.36.2 and Grpc.Tools 2.84.0. Generated C# lives
 under ignored `obj`, not in source control. A fresh protobuf compilation emits
-upstream unused-import warnings; schema files were left intact.
+upstream unused-import warnings; schema definitions were left intact.
 
 ## Observed template
 

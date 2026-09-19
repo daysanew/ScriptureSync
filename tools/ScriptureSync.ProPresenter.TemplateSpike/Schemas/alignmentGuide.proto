@@ -18,4 +18,3 @@ message AlignmentGuide {
   .rv.data.AlignmentGuide.GuidelineOrientation orientation = 2;
   double location = 3;
 }
-

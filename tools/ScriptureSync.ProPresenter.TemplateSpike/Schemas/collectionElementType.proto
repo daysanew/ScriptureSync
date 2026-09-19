@@ -14,4 +14,3 @@ message CollectionElementType {
   string parameter_name = 2;
   .rv.data.CollectionElementType parent_collection = 3;
 }
-

@@ -133,4 +133,3 @@ enum KeyCode {
   KEY_CODE_JIS_EISU = 116;
   KEY_CODE_JIS_KANA = 117;
 }
-

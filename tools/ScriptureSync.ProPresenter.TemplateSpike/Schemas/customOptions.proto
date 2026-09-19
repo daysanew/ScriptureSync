@@ -3,4 +3,3 @@ syntax = "proto3";
 package rv.data;
 
 import "google/protobuf/descriptor.proto";
-

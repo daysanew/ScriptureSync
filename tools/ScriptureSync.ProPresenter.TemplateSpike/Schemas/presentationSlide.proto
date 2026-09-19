@@ -25,4 +25,3 @@ message PresentationSlide {
   .rv.data.URL chord_chart = 4;
   .rv.data.Transition transition = 5;
 }
-

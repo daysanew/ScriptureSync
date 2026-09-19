@@ -16,4 +16,3 @@ message Background {
     .rv.data.Graphics.Gradient gradient = 2;
   }
 }
-

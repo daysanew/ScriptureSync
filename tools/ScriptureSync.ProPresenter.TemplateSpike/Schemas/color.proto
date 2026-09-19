@@ -14,4 +14,3 @@ message Color {
   float blue = 3;
   float alpha = 4;
 }
-

@@ -67,4 +67,3 @@ message URL {
 message URLs {
   repeated .rv.data.URL urls = 1;
 }
-

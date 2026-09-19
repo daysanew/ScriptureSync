@@ -16,4 +16,3 @@ message PropSlide {
   bool auto_clear_enabled = 3;
   double auto_clear_duration = 4;
 }
-

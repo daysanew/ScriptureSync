@@ -11,4 +11,3 @@ import "customOptions.proto";
 message UUID {
   string string = 1;
 }
-

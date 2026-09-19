@@ -28,4 +28,3 @@ message ApplicationInfo {
   .rv.data.ApplicationInfo.Application application = 3;
   .rv.data.Version application_version = 4;
 }
-

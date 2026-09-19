@@ -39,4 +39,3 @@ message MusicKeyScale {
   .rv.data.MusicKeyScale.MusicKey music_key = 1;
   .rv.data.MusicKeyScale.MusicScale music_scale = 2;
 }
-

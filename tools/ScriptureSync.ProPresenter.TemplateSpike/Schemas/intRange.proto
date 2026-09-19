@@ -12,4 +12,3 @@ message IntRange {
   int32 start = 1;
   int32 end = 2;
 }
-

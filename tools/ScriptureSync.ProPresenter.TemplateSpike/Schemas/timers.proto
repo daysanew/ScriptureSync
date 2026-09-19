@@ -104,4 +104,3 @@ message LocalTimer {
 message TimersLocalDocument {
   repeated .rv.data.LocalTimer timers = 1;
 }
-

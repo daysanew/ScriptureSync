@@ -90,4 +90,3 @@ message LocalMessage {
 message MessageLocalDocument {
   repeated .rv.data.LocalMessage messages = 1;
 }
-

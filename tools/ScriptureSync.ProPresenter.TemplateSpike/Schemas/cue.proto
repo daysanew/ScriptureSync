@@ -51,4 +51,3 @@ message Cue {
   bool isEnabled = 12;
   double completion_time = 13;
 }
-

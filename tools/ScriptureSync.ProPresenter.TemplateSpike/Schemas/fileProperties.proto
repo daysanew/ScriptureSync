@@ -21,4 +21,3 @@ message FileProperties {
   .rv.data.URL local_url = 1;
   .rv.data.FileProperties.RemoteProperties remote_properties = 2;
 }
-

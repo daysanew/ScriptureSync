@@ -16,4 +16,3 @@ message TemplateIdentification {
   string slide_name = 4;
   uint32 slide_index = 5;
 }
-

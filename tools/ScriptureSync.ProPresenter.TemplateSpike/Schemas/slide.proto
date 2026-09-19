@@ -531,4 +531,3 @@ message Slide {
   .rv.data.Graphics.Size size = 6;
   .rv.data.UUID uuid = 7;
 }
-

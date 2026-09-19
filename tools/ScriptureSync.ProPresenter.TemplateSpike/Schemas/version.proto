@@ -12,4 +12,3 @@ message Version {
   uint32 patch_version = 3;
   string build = 4;
 }
-

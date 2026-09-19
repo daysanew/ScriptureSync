@@ -124,4 +124,3 @@ message Presentation {
     double slide_show_duration = 20;
   }
 }
-

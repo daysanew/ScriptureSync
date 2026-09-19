@@ -462,4 +462,3 @@ message Action {
     .rv.data.Action.CaptureType capture = 43;
   }
 }
-

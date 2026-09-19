@@ -20,4 +20,3 @@ message Font {
   string family = 9;
   string face = 10;
 }
-

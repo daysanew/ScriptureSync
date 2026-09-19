@@ -94,4 +94,3 @@ message Transition {
   .rv.data.UUID favorite_uuid = 2;
   .rv.data.Effect effect = 3;
 }
-

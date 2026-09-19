@@ -97,4 +97,3 @@ message Layer {
   repeated .rv.data.Effect effects = 14;
   .rv.data.Layer.Blending blend = 15;
 }
-

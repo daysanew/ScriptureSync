@@ -11,4 +11,3 @@ enum AlphaType {
   ALPHA_TYPE_STRAIGHT = 1;
   ALPHA_TYPE_PREMULTIPLIED = 2;
 }
-
