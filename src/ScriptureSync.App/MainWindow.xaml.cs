@@ -32,7 +32,7 @@ public partial class MainWindow : Window
         _viewModel = new MainWindowViewModel(
             _parser,
             new ManualDraftStore(paths, logger),
-            new OpenLpBridgeClient(_configuration.OpenLpBridgeAddress),
+            new OpenLpSyncDestination(new OpenLpBridgeClient(_configuration.OpenLpBridgeAddress)),
             logger);
         DataContext = _viewModel;
     }

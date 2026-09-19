@@ -1,11 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Net.Http;
 using ScriptureSync.App.Services;
 using ScriptureSync.Core.Logging;
 using ScriptureSync.Core.Parsing;
-using ScriptureSync.OpenLP;
+using ScriptureSync.Core.Sync;
 using ScriptureSync.PlanningCenter;
 
 namespace ScriptureSync.App.ViewModels;
@@ -14,7 +13,7 @@ public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly ScriptureReferenceParser _parser;
     private readonly ManualDraftStore _draftStore;
-    private readonly IOpenLpClient? _openLpClient;
+    private readonly IScriptureSyncDestination? _destination;
     private readonly IAppLogger? _logger;
     private ScriptureDraftItemViewModel? _selectedItem;
     private bool _isSyncing;
@@ -23,12 +22,12 @@ public sealed class MainWindowViewModel : ObservableObject
     public MainWindowViewModel(
         ScriptureReferenceParser parser,
         ManualDraftStore draftStore,
-        IOpenLpClient? openLpClient = null,
+        IScriptureSyncDestination? destination = null,
         IAppLogger? logger = null)
     {
         _parser = parser;
         _draftStore = draftStore;
-        _openLpClient = openLpClient;
+        _destination = destination;
         _logger = logger;
         Items.CollectionChanged += ItemsOnCollectionChanged;
 
@@ -39,7 +38,7 @@ public sealed class MainWindowViewModel : ObservableObject
         MoveDownCommand = new RelayCommand(MoveDown, () =>
             SelectedIndex >= 0 && SelectedIndex < Items.Count - 1);
         SyncCommand = new AsyncRelayCommand(SyncToOpenLpAsync,
-            () => !IsSyncing && ReadyCount > 0 && _openLpClient is not null);
+            () => !IsSyncing && ReadyCount > 0 && _destination is not null);
 
         foreach (var storedItem in _draftStore.Load())
         {
@@ -144,7 +143,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public async Task<bool> CheckOpenLpPluginAsync()
     {
-        if (_openLpClient is null)
+        if (_destination is null)
         {
             OpenLpStatus = "ScriptureSync OpenLP integration is unavailable.";
             return false;
@@ -153,17 +152,17 @@ public sealed class MainWindowViewModel : ObservableObject
         OpenLpStatus = "Checking OpenLP plugin...";
         try
         {
-            var connection = await _openLpClient.PrepareAsync();
-            OpenLpStatus = $"Ready • plugin active • {connection.InstalledBibles.Count} Bibles";
+            var connection = await _destination.PrepareAsync();
+            OpenLpStatus = $"Ready • plugin active • {connection.InstalledBibleCount} Bibles";
             return true;
         }
-        catch (HttpRequestException exception)
+        catch (ScriptureDestinationUnavailableException exception)
         {
             _logger?.Error("Unable to reach the ScriptureSync OpenLP plugin.", exception);
             OpenLpStatus = "Plugin unavailable • start OpenLP and activate ScriptureSync";
             return false;
         }
-        catch (OpenLpException exception)
+        catch (ScriptureSyncException exception)
         {
             _logger?.Error("The ScriptureSync OpenLP plugin failed its status check.", exception);
             OpenLpStatus = $"Plugin error • {exception.Message}";
@@ -179,7 +178,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public async Task SyncToOpenLpAsync()
     {
-        if (_openLpClient is null) return;
+        if (_destination is null) return;
         IsSyncing = true;
         OpenLpStatus = "Connecting...";
         var addedTotal = 0;
@@ -205,8 +204,8 @@ public sealed class MainWindowViewModel : ObservableObject
                         foreach (var passage in parsed.Passages)
                         {
                             item.SetSyncStatus($"Adding {passage} ({translation})...");
-                            var result = await _openLpClient.AddScriptureAsync(
-                                translation, passage.ToString());
+                            var result = await _destination.AddScriptureAsync(
+                                translation, passage);
                             if (result is null)
                             {
                                 rowErrors.Add($"Not found: {passage} ({translation})");
@@ -216,11 +215,11 @@ public sealed class MainWindowViewModel : ObservableObject
                             addedTotal++;
                         }
                     }
-                    catch (OpenLpBibleNotInstalledException)
+                    catch (ScriptureTranslationNotInstalledException)
                     {
                         rowErrors.Add($"Translation not installed: {translation}");
                     }
-                    catch (HttpRequestException)
+                    catch (ScriptureDestinationUnavailableException)
                     {
                         // A refused connection means OpenLP exited. Do not continue
                         // through later rows or resume against a restarted instance.
@@ -251,7 +250,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 ? $"Sync complete • {addedTotal} added"
                 : $"Sync complete • {addedTotal} added • {failedRows} need attention";
         }
-        catch (HttpRequestException exception)
+        catch (ScriptureDestinationUnavailableException exception)
         {
             activeItem?.SetSyncStatus("Stopped: ScriptureSync plugin unavailable");
             _logger?.Error("Unable to reach the ScriptureSync OpenLP plugin.", exception);
@@ -259,7 +258,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 ? "Cannot reach the ScriptureSync plugin. Start OpenLP and activate the plugin."
                 : $"Sync stopped • plugin unavailable after {addedTotal} added";
         }
-        catch (OpenLpException exception)
+        catch (ScriptureSyncException exception)
         {
             activeItem?.SetSyncStatus($"OpenLP error: {exception.Message}");
             _logger?.Error("The ScriptureSync OpenLP plugin reported an error.", exception);
