@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private AppConfiguration _configuration;
     private readonly LocalAppPaths _paths = new();
     private bool IsProPresenter => _configuration.PresentationSoftware == "ProPresenter";
+    private bool IsPcoAttachmentDraft => _viewModel.Items.Count > 0 && _viewModel.Items.All(i => i.SourceKey?.StartsWith("PCO:", StringComparison.Ordinal) == true);
 
     public MainWindow()
     {
@@ -127,8 +128,10 @@ public partial class MainWindow : Window
             DestinationStatus.Text = "Preview Bible text and changes before syncing. Configure the library and template in Settings.";
         else
             DestinationStatus.SetBinding(System.Windows.Controls.TextBlock.TextProperty, new Binding(nameof(MainWindowViewModel.OpenLpStatus)));
-        DestinationHint.Text = IsProPresenter ? "ProPresenter must be running before previewing and syncing." : "OpenLP must be running on this computer before syncing.";
-        SyncButton.Content = IsProPresenter ? "Preview ProPresenter" : _viewModel.SyncButtonText;
+        DestinationHint.Text = IsProPresenter ? IsPcoAttachmentDraft
+            ? "Send scripture attachments to PCO, then import or refresh the plan in ProPresenter. ProPresenter does not need to be open to send."
+            : "ProPresenter must be running before previewing and syncing." : "OpenLP must be running on this computer before syncing.";
+        SyncButton.Content = IsProPresenter ? IsPcoAttachmentDraft ? "Preview PCO attachments" : "Preview ProPresenter" : _viewModel.SyncButtonText;
         SyncButton.IsEnabled = !_viewModel.IsSyncing && (IsProPresenter ? _viewModel.Items.Count > 0 : _viewModel.ReadyCount > 0);
     }
 
@@ -142,6 +145,12 @@ public partial class MainWindow : Window
         }
         try
         {
+            if (IsPcoAttachmentDraft)
+            {
+                new PlanningCenterPresentationWindow(_configuration.ProPresenter, _viewModel.Items, _planningCenterCredentials,
+                    Path.Combine(_paths.DataDirectory, "ProPresenter")) { Owner = this }.ShowDialog();
+                return;
+            }
             new ProPresenterSyncWindow(_configuration.ProPresenter, _viewModel.Items,
                 Path.Combine(_paths.DataDirectory, "ProPresenter")) { Owner = this }.ShowDialog();
         }

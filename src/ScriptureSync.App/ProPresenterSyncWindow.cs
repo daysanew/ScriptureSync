@@ -28,6 +28,8 @@ public sealed class ProPresenterSyncWindow : Window
     private readonly ProPresenterPublisher _publisher;
     private CancellationTokenSource? _cancellation;
     private JsonElement _playlist;
+    private PcoPlaylist? _pco;
+    private string? _workspace;
     private bool _busy;
 
     public ProPresenterSyncWindow(ProPresenterConfiguration configuration, IEnumerable<ScriptureDraftItemViewModel> draft, string stateDirectory)
@@ -85,7 +87,7 @@ public sealed class ProPresenterSyncWindow : Window
 
     private async Task RefreshAsync()
     {
-        Begin("Checking connection, Bible text, template, and owned presentations…"); _rows.Clear(); _text.Clear();
+        Begin("Checking connection, Bible text, template, and owned presentations…"); _rows.Clear(); _text.Clear(); _pco = null; _workspace = null;
         try
         {
             var token = _cancellation!.Token;
@@ -93,7 +95,12 @@ public sealed class ProPresenterSyncWindow : Window
             if (!string.IsNullOrEmpty(_configuration.PlaylistId))
             {
                 _playlist = await _api.GetPlaylistContentsAsync(_configuration.PlaylistId, token);
-                _ = ProPresenterPlaylistLinker.BuildItems(_playlist, []);
+                if (_playlist.GetProperty("items").EnumerateArray().Any(i => i.TryGetProperty("is_pco", out var pco) && pco.GetBoolean()))
+                {
+                    _workspace = ProPresenterPcoSync.Workspace(_configuration.LibraryDirectory, new Uri(_configuration.Address));
+                    _pco = ProPresenterPcoSync.Read(File.ReadAllBytes(Path.Combine(_workspace, "Playlists", "Library")), _configuration.PlaylistId);
+                }
+                else _ = ProPresenterPlaylistLinker.BuildItems(_playlist, []);
             }
             var provider = new ProPresenterBibleProvider(_configuration.BibleDirectory);
             var identities = new HashSet<string>();
@@ -110,12 +117,28 @@ public sealed class ProPresenterSyncWindow : Window
                     var content = new ScripturePresentationComposer().Compose(passage);
                     var plan = await Task.Run(() => _publisher.Preview(content, identity), token);
                     var targets = new List<PlaylistTarget> { new(null, "Append / keep existing link") };
-                    _rows.Add(new(content, plan, draft.PcoItemName ?? draft.Source, targets));
+                    if (_pco is not null)
+                    {
+                        var matched = ProPresenterPcoSync.Match(_pco, draft.SourceKey);
+                        targets = [new(null, "Choose a PCO item…")];
+                        targets.AddRange(_pco.Items.Select((item, index) => new PlaylistTarget(index, item.Name)));
+                        var row = new PreviewRow(content, plan, draft.PcoItemName ?? draft.Source, targets);
+                        if (matched is not null) row.Target = targets.Single(t => t.Index is int n && _pco.Items[n].ItemId == matched.ItemId);
+                        _rows.Add(row);
+                    }
+                    else _rows.Add(new(content, plan, draft.PcoItemName ?? draft.Source, targets));
                 }
             }
             var stale = _publisher.FindStale(_rows.Select(r => r.Plan.Key));
             _status.Text = $"{_rows.Count} presentations • {_rows.Count(r => r.Plan.Change != PublishChange.Unchanged)} file changes. Review the slides and playlist mapping before syncing." +
                 (stale.Count > 0 ? $"\nPreviously generated content outside this draft (kept): {string.Join(", ", stale)}" : "");
+            if (_pco is not null)
+            {
+                _status.Text += "\nNew PCO links require ProPresenter to close and reopen. Save your work first; respond to its quit prompt when asked. Existing links can update without restarting.";
+                if (_rows.All(r => r.Target.Index is not null))
+                    _status.Text += ProPresenterPcoSync.Validate(_pco, PcoRequests(), _playlist)
+                        ? "\nThis preview requires a restart." : "\nThis preview does not require a restart.";
+            }
             _publish.IsEnabled = _rows.Count > 0;
             _grid.SelectedIndex = _rows.Count > 0 ? 0 : -1;
         }
@@ -133,7 +156,17 @@ public sealed class ProPresenterSyncWindow : Window
         {
             var token = _cancellation!.Token;
             var links = _rows.Select(row => new PlaylistLink(row.Plan.Id, row.Title, row.Target.Index)).ToArray();
-            if (!string.IsNullOrEmpty(_configuration.PlaylistId)) _ = ProPresenterPlaylistLinker.BuildItems(_playlist, links);
+            PcoLinkRequest[]? pcoRequests = null;
+            var restart = false;
+            if (_pco is not null)
+            {
+                pcoRequests = PcoRequests();
+                var live = await _api.GetPlaylistContentsAsync(_configuration.PlaylistId, token);
+                var current = ProPresenterPcoSync.Read(File.ReadAllBytes(Path.Combine(_workspace!, "Playlists", "Library")), _configuration.PlaylistId);
+                if (current.PlanId != _pco.PlanId || current.ServiceId != _pco.ServiceId) throw new InvalidOperationException("PCO plan changed. Refresh preview.");
+                restart = ProPresenterPcoSync.Validate(current, pcoRequests, live);
+            }
+            else if (!string.IsNullOrEmpty(_configuration.PlaylistId)) _ = ProPresenterPlaylistLinker.BuildItems(_playlist, links);
             var published = 0;
             foreach (var row in _rows)
             {
@@ -142,7 +175,15 @@ public sealed class ProPresenterSyncWindow : Window
                 await _publisher.ApplyAsync(row.Plan, token);
                 published++;
             }
-            if (!string.IsNullOrEmpty(_configuration.PlaylistId))
+            if (_pco is not null)
+            {
+                if (restart)
+                    await ProPresenterRestart.LinkAsync(_workspace!, _pco, pcoRequests!, Path.Combine(_stateDirectory, "backups"), _api, message => _status.Text = message, token);
+                var verified = await _api.GetPlaylistContentsAsync(_configuration.PlaylistId, token);
+                var native = ProPresenterPcoSync.Read(File.ReadAllBytes(Path.Combine(_workspace!, "Playlists", "Library")), _configuration.PlaylistId);
+                if (ProPresenterPcoSync.Validate(native, pcoRequests!, verified)) throw new InvalidOperationException("ProPresenter has not confirmed all PCO links. Inspect it before retrying.");
+            }
+            else if (!string.IsNullOrEmpty(_configuration.PlaylistId))
                 await ProPresenterPlaylistLinker.LinkAsync(_api, _configuration.PlaylistId, _playlist, links, Path.Combine(_stateDirectory, "backups"), token);
             _status.Text = $"Sync complete: {published} presentations verified" + (string.IsNullOrEmpty(_configuration.PlaylistId) ? "." : " and playlist links verified.") + " Refresh preview to check for further changes.";
         }
@@ -150,6 +191,13 @@ public sealed class ProPresenterSyncWindow : Window
         catch (Exception e) { _status.Text = e.Message + "\nCompleted files were kept. Refresh preview before retrying."; }
         finally { End(); }
     }
+
+    private PcoLinkRequest[] PcoRequests() => _rows.Select(row =>
+    {
+        if (_pco is null || row.Target.Index is not int index || index < 0 || index >= _pco.Items.Count)
+            throw new InvalidOperationException("Choose a PCO item for every presentation before syncing.");
+        return new PcoLinkRequest(_pco.Items[index], row.Plan);
+    }).ToArray();
 
     public sealed record PlaylistTarget(int? Index, string Label);
     public sealed class PreviewRow(ScripturePresentation content, ProPresenterPublishPlan plan, string source, List<PlaylistTarget> targets)

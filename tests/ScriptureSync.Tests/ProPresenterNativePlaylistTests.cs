@@ -75,5 +75,55 @@ public sealed class ProPresenterNativePlaylistTests : IDisposable
         File.WriteAllBytes(_presentation,doc.ToByteArray());
         Assert.Throws<InvalidDataException>(()=>Link());
     }
+    [Fact]
+    public void Pco_mapping_uses_service_plan_and_item_ids_instead_of_names()
+    {
+        var playlist = ProPresenterPcoSync.Read(_source, "playlist");
+        Assert.Equal("item", ProPresenterPcoSync.Match(playlist, "PCO:service:plan:pco-item:0")!.ItemId);
+        Assert.Null(ProPresenterPcoSync.Match(playlist, null));
+        Assert.Throws<InvalidOperationException>(() => ProPresenterPcoSync.Match(playlist, "PCO:other:plan:pco-item:0"));
+        Assert.Throws<InvalidOperationException>(() => ProPresenterPcoSync.Match(playlist, "PCO:service:other:pco-item:0"));
+        Assert.Throws<InvalidOperationException>(() => ProPresenterPcoSync.Match(playlist, "PCO:service:plan:missing:0"));
+    }
+    [Fact]
+    public void Restart_is_required_only_for_missing_links_and_foreign_links_are_rejected()
+    {
+        var playlist = ProPresenterPcoSync.Read(_source, "playlist");
+        var plan = new ProPresenterPublishPlan("identity", "key", "title", "presentation-id", _presentation,
+            ScriptureSync.Core.Presentations.PublishChange.Unchanged, "hash", null, [], []);
+        var requests = new[] { new PcoLinkRequest(playlist.Items[0], plan) };
+        var placeholder = System.Text.Json.JsonSerializer.SerializeToElement(new { items = new[] { new { id = new { uuid = "item" }, is_pco = true } } });
+        Assert.True(ProPresenterPcoSync.Validate(playlist, requests, placeholder));
+        var linked = ProPresenterPcoSync.Read(Link(), "playlist");
+        var live = System.Text.Json.JsonSerializer.SerializeToElement(new { items = new[] { new { id = new { uuid = "item" }, is_pco = true, target_uuid = "presentation-id" } } });
+        Assert.False(ProPresenterPcoSync.Validate(linked, requests, live));
+        Assert.Throws<InvalidOperationException>(() => ProPresenterPcoSync.Validate(linked, [requests[0], requests[0]], live));
+        Assert.Throws<InvalidOperationException>(() => ProPresenterPcoSync.Validate(linked, [new(playlist.Items[0], plan with { Path = _presentation + ".other" })], live));
+        Assert.Throws<InvalidOperationException>(() => ProPresenterPcoSync.Validate(linked, [new(playlist.Items[0], plan with { Id = "foreign" })], live));
+    }
+    [Fact]
+    public void Batch_prepare_preserves_existing_links_and_rejects_plan_changes()
+    {
+        var playlist = ProPresenterPcoSync.Read(_source, "playlist");
+        var plan = new ProPresenterPublishPlan("identity", "key", "title", "presentation-id", _presentation,
+            ScriptureSync.Core.Presentations.PublishChange.Unchanged, "hash", null, [], []);
+        var requests = new[] { new PcoLinkRequest(playlist.Items[0], plan) };
+        var first = ProPresenterPcoSync.Prepare(_source, _workspace, playlist, requests);
+        Assert.Equal(first, ProPresenterPcoSync.Prepare(first, _workspace, playlist, requests));
+        Assert.Throws<InvalidOperationException>(() => ProPresenterPcoSync.Prepare(_source, _workspace, playlist with { ServiceId = "other" }, requests));
+    }
+    [Fact]
+    public void Next_step_distinguishes_import_refresh_and_unknown_by_real_plan_identity()
+    {
+        Assert.Equal(PcoImportState.Imported, ProPresenterPcoNextStep.Evaluate(_source, ["playlist", "other"], "service", "plan").State);
+        Assert.Equal(PcoImportState.NotImported, ProPresenterPcoNextStep.Evaluate(_source, ["playlist", "other"], "different-service", "plan").State);
+        Assert.Equal(PcoImportState.Unknown, ProPresenterPcoNextStep.Evaluate(_source, ["not-yet-saved"], "service", "plan").State);
+        var root = ProPresenterNativePlaylist.ReadRoot(_source);
+        var copy = root.Playlists.Playlists[0].Clone(); copy.Uuid.String = "duplicate";
+        root.Playlists.Playlists.Add(copy);
+        using var stream = new MemoryStream();
+        using (var output = new CodedOutputStream(stream, true)) { output.WriteTag(3, WireFormat.WireType.LengthDelimited); output.WriteBytes(root.ToByteString()); output.Flush(); }
+        Assert.Equal(PcoImportState.MultiplePlaylists, ProPresenterPcoNextStep.Evaluate(stream.ToArray(), ["playlist", "duplicate"], "service", "plan").State);
+    }
     public void Dispose()=>Directory.Delete(_workspace,true);
 }
