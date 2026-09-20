@@ -35,8 +35,10 @@ public sealed partial class PlanningCenterClient : IPlanningCenterClient
         var selectedTypes = serviceTypes.Where(type =>
             includedServiceTypeIds is null || includedServiceTypeIds.Count == 0 ||
             includedServiceTypeIds.Contains(type.Id, StringComparer.OrdinalIgnoreCase));
-        var now = _timeProvider.GetLocalNow();
-        var end = now.AddDays(Math.Max(1, windowDays));
+        // The picker is a calendar-day window, not a countdown from the current time.
+        // PCO sort_date may be earlier today even before a service is actually held.
+        var today = DateOnly.FromDateTime(_timeProvider.GetLocalNow().DateTime);
+        var lastDay = today.AddDays(Math.Max(1, windowDays));
         var plans = new List<ServicePlan>();
 
         foreach (var serviceType in selectedTypes)
@@ -51,7 +53,11 @@ public sealed partial class PlanningCenterClient : IPlanningCenterClient
                     typeName,
                     plan.String("title"),
                     plan.Date("sort_date")))
-                .Where(plan => plan.StartsAt >= now && plan.StartsAt <= end));
+                .Where(plan =>
+                {
+                    var day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(plan.StartsAt, _timeProvider.LocalTimeZone).DateTime);
+                    return day >= today && day <= lastDay;
+                }));
         }
 
         return plans.OrderBy(plan => plan.StartsAt).ToArray();

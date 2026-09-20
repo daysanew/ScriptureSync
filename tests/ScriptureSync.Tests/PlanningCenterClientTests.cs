@@ -53,6 +53,29 @@ public sealed class PlanningCenterClientTests
         Assert.Equal("Romans 5:5 (NLT)", items[1].Details);
     }
 
+    [Theory]
+    [InlineData("2026-09-20T00:01:00-05:00")]
+    [InlineData("2026-09-20T23:59:00-05:00")]
+    public async Task Plan_window_includes_all_of_today_and_last_day_in_local_time(string currentTime)
+    {
+        var handler = new StubHandler(request => request.RequestUri!.AbsolutePath.EndsWith("service_types")
+            ? Json("""{"data":[{"id":"type","attributes":{"name":"Tests"}}]}""")
+            : Json("""
+                {"data":[
+                  {"id":"yesterday","attributes":{"title":"Yesterday locally","sort_date":"2026-09-20T04:59:00Z"}},
+                  {"id":"midnight","attributes":{"title":"Midnight","sort_date":"2026-09-20T05:00:00Z"}},
+                  {"id":"today","attributes":{"title":"Today","sort_date":"2026-09-20T08:00:00Z"}},
+                  {"id":"tonight","attributes":{"title":"Tonight locally","sort_date":"2026-09-21T04:59:00Z"}},
+                  {"id":"last-day","attributes":{"title":"Last evening","sort_date":"2026-09-28T04:59:00Z"}},
+                  {"id":"too-far","attributes":{"title":"Outside window","sort_date":"2026-09-28T05:00:00Z"}}
+                ]}
+                """));
+        var client = new PlanningCenterClient("id", "secret", new HttpClient(handler),
+            new FixedTimeProvider(DateTimeOffset.Parse(currentTime)));
+        var plans = await client.GetUpcomingPlansAsync(7);
+        Assert.Equal(["midnight", "today", "tonight", "last-day"], plans.Select(p => p.Id));
+    }
+
     private static PlanningCenterClient CreateClient(HttpMessageHandler handler) => new(
         "application-id", "secret",
         new HttpClient(handler) { BaseAddress = new Uri("https://api.planningcenteronline.com/services/v2/") },
