@@ -2,19 +2,43 @@ using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Pro.SerializationInterop.RVProtoData;
-using ScriptureSync.ProPresenter.BibleSpike;
+using ScriptureSync.Core.Bibles;
+using ScriptureSync.Core.Presentations;
+using ScriptureSync.Core.Parsing;
 
-namespace ScriptureSync.ProPresenter.TemplateSpike;
+namespace ScriptureSync.ProPresenter;
 
-public static class TemplateWriter
+public static class ProPresenterDocumentWriter
 {
+    public static Presentation Create(Presentation template, ScripturePresentation content)
+    {
+        if (content.Slides.Count == 0) throw new InvalidDataException("No slides to publish.");
+        var verses = content.Slides.Select(slide =>
+        {
+            var parsed = new ScriptureReferenceParser().Parse(slide.Reference);
+            if (!parsed.IsValid || parsed.Passages.Count != 1 || !int.TryParse(parsed.Passages[0].VerseSelection, out var number))
+                throw new InvalidDataException("Each slide must identify exactly one verse.");
+            var reference = parsed.Passages[0];
+            return new VerseText(reference.Book, reference.Chapter, number, slide.Text);
+        }).ToArray();
+        if (content.Slides.Any(s => s.Translation != content.Slides[0].Translation))
+            throw new InvalidDataException("A presentation must use a single translation.");
+        var first = verses[0];
+        var last = verses[^1];
+        var passage = new PassageText(content.Slides[0].Translation,
+            new(first.Book, first.Chapter, first.Verse.ToString(), last.Chapter, last.Verse), verses);
+        var output = Create(template, passage);
+        output.Name = content.Title;
+        return output;
+    }
+
     public static Presentation Create(Presentation template, PassageText passage)
     {
+        var composed = new ScripturePresentationComposer().Compose(passage);
         if (template.Cues.Count == 0 || template.CueGroups.Count != 1 ||
-            template.BibleReference?.BookName != passage.Reference.Book ||
-            template.BibleReference.TranslationInternalAbbreviation != passage.Translation ||
+            template.BibleReference is null ||
             passage.Verses.Count == 0 || template.Timeline is { Cues.Count: > 0 } or { CuesV2.Count: > 0 })
-            throw new InvalidDataException("Spike requires one cue group, no timeline cues, and the template's book and translation.");
+            throw new InvalidDataException("Use a Bible presentation template with one cue group and no timeline cues.");
         var group = template.CueGroups[0].Group;
         if (string.IsNullOrEmpty(template.Uuid?.String) || string.IsNullOrEmpty(group?.Uuid?.String) ||
             template.Arrangements.Any(a => a.GroupIdentifiers.Any(id => id.String != group.Uuid.String)))
@@ -26,7 +50,7 @@ public static class TemplateWriter
             throw new InvalidDataException($"Template cue has missing identity or completion links that cannot safely be cloned (target: {source.CompletionTargetType}, cue: {source.CompletionTargetUuid?.String}, action: {source.CompletionActionUuid?.String}).");
         if (source.Actions.Count != 1 || source.Actions[0].Slide?.Presentation?.BaseSlide is not { } slide ||
             slide.Elements.Count != 2 || slide.Elements.Any(e => e.DataLinks.Count > 0 || e.ChildBuilds.Count > 0))
-            throw new InvalidDataException("Spike requires a simple two-text-box slide with one slide action and no data links or child builds.");
+            throw new InvalidDataException("Use a simple two-text-box slide with one slide action and no data links or child builds.");
         if (string.IsNullOrEmpty(slide.Uuid?.String) || string.IsNullOrEmpty(source.Actions[0].Uuid?.String) ||
             slide.Elements.Any(e => string.IsNullOrEmpty(e.Element_?.Uuid?.String)))
             throw new InvalidDataException("Template slide/action/text boxes require identities before cloning.");
@@ -35,20 +59,22 @@ public static class TemplateWriter
                 throw new InvalidDataException($"Expected exactly one named {name} text box.");
 
         var output = template.Clone();
-        output.Name = $"ScriptureSync TEST {passage.Reference} ({passage.Translation})";
+        output.Name = $"ScriptureSync TEST {composed.Title}";
         output.Cues.Clear();
         output.CueGroups[0].CueIdentifiers.Clear();
-        foreach (var verse in passage.Verses)
+        foreach (var logicalSlide in composed.Slides)
         {
             var cue = source.Clone();
-            cue.Name = $"{verse.Book} {verse.Chapter}:{verse.Verse}";
+            cue.Name = logicalSlide.Reference;
+            cue.Actions[0].Name = logicalSlide.Reference;
+            if (cue.Actions[0].Label is not null) cue.Actions[0].Label.Text = logicalSlide.Reference;
             foreach (var element in cue.Actions[0].Slide.Presentation.BaseSlide.Elements)
             {
                 var text = element.Element_.Text;
                 if (text.AlternateTexts.Count > 0)
-                    throw new InvalidDataException("Alternate text is outside this spike's supported template shape.");
+                    throw new InvalidDataException("Use a template without alternate text.");
                 text.RtfData = ReplaceSimpleRtf(text.RtfData,
-                    element.Element_.Name == "Verse" ? verse.Text : $"{cue.Name} ({passage.Translation})");
+                    element.Element_.Name == "Verse" ? logicalSlide.Text : $"{logicalSlide.Reference} ({logicalSlide.Translation})");
             }
             RemapDefinedIds(cue);
             output.Cues.Add(cue);
@@ -58,6 +84,13 @@ public static class TemplateWriter
         var last = passage.Verses[^1];
         output.BibleReference.ChapterRange = new IntRange { Start = first.Chapter, End = last.Chapter };
         output.BibleReference.VerseRange = new IntRange { Start = first.Verse, End = last.Verse };
+        output.BibleReference.BookName = first.Book;
+        // The book index and USX key are both required by ProPresenter's Bible navigation.
+        output.BibleReference.BookIndex = (uint)UsxBibleReader.GetBookIndex(first.Book);
+        output.BibleReference.BookKey = UsxBibleReader.GetBookCode(first.Book);
+        output.BibleReference.TranslationName = passage.Translation;
+        output.BibleReference.TranslationInternalAbbreviation = passage.Translation;
+        output.BibleReference.TranslationDisplayAbbreviation = passage.Translation;
         RemapDefinedIds(output);
         return output;
     }

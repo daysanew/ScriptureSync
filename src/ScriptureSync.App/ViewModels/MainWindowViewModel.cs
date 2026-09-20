@@ -43,7 +43,7 @@ public sealed class MainWindowViewModel : ObservableObject
         foreach (var storedItem in _draftStore.Load())
         {
             AddItem(new ScriptureDraftItemViewModel(
-                _parser, storedItem.Id, storedItem.RawText, storedItem.Source));
+                _parser, storedItem.Id, storedItem.RawText, storedItem.Source, storedItem.SourceKey, storedItem.PcoItemName));
         }
 
         RefreshSummary();
@@ -116,19 +116,34 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public int AddPlanningCenterItems(
         IEnumerable<PlanningCenterScriptureItem> items,
-        string planDisplayName)
+        string planDisplayName, string? planKey = null, bool updateExisting = false)
     {
         var added = 0;
+        var previous = updateExisting && planKey is not null
+            ? Items.Where(row => row.SourceKey?.StartsWith($"PCO:{planKey}:", StringComparison.Ordinal) == true).ToArray()
+            : [];
+        var refreshed = new List<ScriptureDraftItemViewModel>();
         foreach (var item in items.OrderBy(item => item.Sequence))
         {
             var lines = item.Details.Replace("\r\n", "\n")
                 .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
+            for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
             {
-                AddItem(new ScriptureDraftItemViewModel(
-                    _parser, Guid.NewGuid(), line, $"Planning Center — {planDisplayName}"));
+                var line = lines[lineIndex];
+                var key = planKey is null ? null : $"PCO:{planKey}:{item.Id}:{lineIndex}";
+                var existing = updateExisting && key is not null ? Items.FirstOrDefault(row => row.SourceKey == key) : null;
+                if (existing is not null) { existing.RawText = line; refreshed.Add(existing); added++; continue; }
+                var row = new ScriptureDraftItemViewModel(
+                    _parser, Guid.NewGuid(), line, $"Planning Center — {planDisplayName}", key, item.Title);
+                AddItem(row);
+                refreshed.Add(row);
                 added++;
             }
+        }
+        if (updateExisting && planKey is not null)
+        {
+            foreach (var row in previous.Concat(refreshed).Distinct()) Items.Remove(row);
+            foreach (var row in refreshed) AddItem(row);
         }
         SelectedItem = Items.LastOrDefault();
         SaveDraft();
@@ -366,5 +381,5 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     private void SaveDraft() => _draftStore.Save(Items.Select(item =>
-        new StoredDraftItem(item.Id, item.RawText, item.Source)));
+        new StoredDraftItem(item.Id, item.RawText, item.Source, item.SourceKey, item.PcoItemName)));
 }

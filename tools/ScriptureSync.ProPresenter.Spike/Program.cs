@@ -1,4 +1,4 @@
-using ScriptureSync.ProPresenter.Spike;
+using ScriptureSync.ProPresenter;
 
 if (args.Length != 2 || args[0] != "--address" || !Uri.TryCreate(args[1], UriKind.Absolute, out var address))
 {

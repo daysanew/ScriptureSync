@@ -1,7 +1,7 @@
 using System.Xml;
 using System.Xml.Linq;
 
-namespace ScriptureSync.ProPresenter.BibleSpike;
+namespace ScriptureSync.ProPresenter;
 
 public sealed record InstalledBible(string Code, string Name, string PackageDirectory);
 

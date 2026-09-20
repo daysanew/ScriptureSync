@@ -40,7 +40,7 @@ public partial class PlanningCenterImportWindow : Window
                 PlansComboBox.SelectedIndex = 0;
                 StatusTextBlock.Text = $"{plans.Count} upcoming plan{(plans.Count == 1 ? string.Empty : "s")} found.";
             }
-            else StatusTextBlock.Text = $"No service plans were found in the next {_windowDays} days.";
+            else StatusTextBlock.Text = $"No service plans were found from today through the next {Math.Max(1, _windowDays)} days.";
         }
         catch (Exception exception)
         {

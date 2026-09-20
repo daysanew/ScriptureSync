@@ -14,11 +14,13 @@ public sealed class ScriptureDraftItemViewModel : ObservableObject
         ScriptureReferenceParser parser,
         Guid id,
         string rawText,
-        string source = "Manual")
+        string source = "Manual", string? sourceKey = null, string? pcoItemName = null)
     {
         _parser = parser;
         Id = id;
         Source = source;
+        SourceKey = sourceKey;
+        PcoItemName = pcoItemName;
         _rawText = rawText;
         Validate();
     }
@@ -26,6 +28,8 @@ public sealed class ScriptureDraftItemViewModel : ObservableObject
     public Guid Id { get; }
 
     public string Source { get; }
+    public string? SourceKey { get; }
+    public string? PcoItemName { get; }
 
     public string RawText
     {

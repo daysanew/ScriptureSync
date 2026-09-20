@@ -10,6 +10,20 @@ namespace ScriptureSync.Tests;
 
 public sealed class ManualDraftWorkflowTests : IDisposable
 {
+    [Fact]
+    public void ProPresenter_reimport_preserves_identity_removes_stale_rows_and_uses_plan_order()
+    {
+        var vm = CreateViewModel();
+        vm.AddPlanningCenterItems([new("a", 1, "Scripture", "John 3:16\nJohn 3:17"), new("b", 2, "Scripture", "Psalm 23")], "Plan", "type:plan", true);
+        var id = vm.Items[0].Id;
+        vm = CreateViewModel();
+        vm.AddPlanningCenterItems([new("b", 1, "Scripture", "Psalm 23"), new("a", 2, "Scripture", "John 3:18")], "Plan", "type:plan", true);
+        Assert.Equal(2, vm.Items.Count);
+        Assert.Equal("Psalm 23", vm.Items[0].RawText);
+        Assert.Equal(id, vm.Items[1].Id);
+        Assert.Equal("John 3:18", CreateViewModel().Items[1].RawText);
+        Assert.Equal("PCO:type:plan:a:0", vm.Items[1].SourceKey);
+    }
     private readonly string _temporaryRoot = Path.Combine(
         Path.GetTempPath(),
         $"ScriptureSyncTests-{Guid.NewGuid():N}");

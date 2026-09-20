@@ -1,12 +1,47 @@
 using System.Net;
 using System.Text;
-using ScriptureSync.ProPresenter.Spike;
+using ScriptureSync.ProPresenter;
+using System.Text.Json;
 
 namespace ScriptureSync.Tests;
 
 public sealed class ProPresenterApiClientTests
 {
     private const string Id = "452b56ed-52ff-4111-92aa-7d3dea5423cc";
+
+    [Fact]
+    public async Task Playlist_drift_stops_before_put()
+    {
+        var requests = 0;
+        using var http = new HttpClient(new Handler((request, _) =>
+        {
+            requests++;
+            Assert.Equal(HttpMethod.Get, request.Method);
+            return Task.FromResult(Json($$"""{"id":{"uuid":"{{Id}}","name":"Changed"},"items":[]}"""));
+        }));
+        using var expected = JsonDocument.Parse($$"""{"id":{"uuid":"{{Id}}","name":"Original"},"items":[]}""");
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Client(http).UpdatePlaylistAsync(Id, expected.RootElement, expected.RootElement.GetProperty("items")));
+        Assert.Equal(1, requests);
+    }
+
+    [Fact]
+    public async Task Playlist_put_supplies_target_field_omitted_by_get()
+    {
+        var body = $$"""{"id":{"uuid":"{{Id}}","name":"Test"},"items":[{"id":{"uuid":"header","name":"Heading"},"type":"header"}]}""";
+        var put = false;
+        using var http = new HttpClient(new Handler(async (request, token) =>
+        {
+            if (request.Method == HttpMethod.Get) return Json(body);
+            Assert.Equal(HttpMethod.Put, request.Method);
+            using var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+            Assert.Equal("", payload.RootElement[0].GetProperty("target_uuid").GetString());
+            put = true;
+            return new(HttpStatusCode.NoContent);
+        }));
+        using var expected = JsonDocument.Parse(body);
+        await Client(http).UpdatePlaylistAsync(Id, expected.RootElement, expected.RootElement.GetProperty("items"));
+        Assert.True(put);
+    }
 
     [Fact]
     public async Task Enumerates_observed_response_shapes_using_only_informational_gets()

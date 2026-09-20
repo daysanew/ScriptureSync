@@ -1,5 +1,5 @@
 using ScriptureSync.Core.Parsing;
-using ScriptureSync.ProPresenter.BibleSpike;
+using ScriptureSync.ProPresenter;
 
 if (args.Length != 0 && (args.Length != 2 || args[0] != "--bible-root"))
 {

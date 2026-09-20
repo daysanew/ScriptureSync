@@ -28,7 +28,7 @@
                 <TextBlock Margin="0,5,0,0"
                        FontSize="15"
                        Foreground="#5D6878"
-                       Text="Review and prepare scripture before sending it to OpenLP." />
+                       x:Name="IntroductionText" Text="Review and prepare scripture before syncing." />
             </StackPanel>
             <Button HorizontalAlignment="Right" VerticalAlignment="Top" Width="92" Height="36"
                     Click="Settings_Click" Content="Settings" />
@@ -36,9 +36,9 @@
 
         <Border Grid.Row="2" Padding="18" Background="White" CornerRadius="9">
             <StackPanel>
-                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5D6878" Text="OPENLP" />
+                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5D6878" x:Name="DestinationLabel" Text="OPENLP" />
                 <TextBlock Margin="0,5,0,0" FontSize="15" Foreground="#283444"
-                           Text="{Binding OpenLpStatus}" />
+                           x:Name="DestinationStatus" Text="{Binding OpenLpStatus}" />
             </StackPanel>
         </Border>
 
@@ -104,12 +104,12 @@
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Foreground="#5D6878" Text="Draft changes are saved automatically on this computer." />
                 <TextBlock Margin="0,3,0,0" Foreground="#5D6878"
-                           Text="OpenLP must be running on this computer before syncing." />
+                           x:Name="DestinationHint" Text="OpenLP must be running on this computer before syncing." />
             </StackPanel>
             <Button HorizontalAlignment="Right"
                     Width="188"
                     Height="48"
-                    Command="{Binding SyncCommand}"
+                    x:Name="SyncButton" Click="Sync_Click"
                     FontSize="16"
                     FontWeight="SemiBold"
                     Content="{Binding SyncButtonText}" />

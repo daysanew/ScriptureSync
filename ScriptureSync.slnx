@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ScriptureSync.ProPresenter/ScriptureSync.ProPresenter.csproj" />
     <Project Path="src/ScriptureSync.App/ScriptureSync.App.csproj" />
     <Project Path="src/ScriptureSync.Core/ScriptureSync.Core.csproj" />
     <Project Path="src/ScriptureSync.OpenLP/ScriptureSync.OpenLP.csproj" />
