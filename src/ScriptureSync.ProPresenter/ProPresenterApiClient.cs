@@ -1,6 +1,8 @@
 using System.Text.Json;
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 
-namespace ScriptureSync.ProPresenter.Spike;
+namespace ScriptureSync.ProPresenter;
 
 public sealed record ProPresenterVersion(string Description, string ApiVersion, string Platform);
 public sealed record ProPresenterItem(string Id, string Name);
@@ -8,8 +10,8 @@ public sealed record ProPresenterItem(string Id, string Name);
 public sealed class ProPresenterDiagnosticException(string message, Exception? inner = null)
     : Exception(message, inner);
 
-/// <summary>Informational endpoints only. GET trigger/focus endpoints are deliberately excluded.</summary>
-public sealed class ProPresenterApiClient
+/// <summary>Presentation discovery and playlist updates. Never triggers or focuses live output.</summary>
+public sealed class ProPresenterApiClient : IProPresenterApiClient
 {
     private readonly HttpClient _http;
     private readonly Uri _address;
@@ -30,7 +32,7 @@ public sealed class ProPresenterApiClient
         {
             var version = new ProPresenterVersion(Text(root, "host_description"), Text(root, "api_version"), Text(root, "platform"));
             if (version.ApiVersion != "v1")
-                throw new ProPresenterDiagnosticException($"Unsupported API version '{version.ApiVersion}'; this spike supports v1 only.");
+                throw new ProPresenterDiagnosticException($"Unsupported API version '{version.ApiVersion}'; ScriptureSync supports v1 only.");
             return version;
         }, token);
 
@@ -49,6 +51,12 @@ public sealed class ProPresenterApiClient
             return playlists;
         }, token);
 
+    public Task<IReadOnlyList<string>> GetPresentationSlideTextsAsync(string presentationId, CancellationToken token = default) =>
+        ReadAsync<IReadOnlyList<string>>($"v1/presentation/{Segment(presentationId)}", root =>
+            root.GetProperty("presentation").GetProperty("groups").EnumerateArray()
+                .SelectMany(group => group.GetProperty("slides").EnumerateArray())
+                .Select(slide => Text(slide, "text")).ToArray(), token);
+
     // Retain the response shape for investigation; do not assume PCO IDs or linkage fields exist.
     public Task<JsonElement> GetPlaylistContentsAsync(string playlistId, CancellationToken token = default) =>
         ReadAsync($"v1/playlist/{Segment(playlistId)}", root =>
@@ -66,6 +74,19 @@ public sealed class ProPresenterApiClient
             if (type == "playlist") result.Add(Item(node.GetProperty("id")));
             AddPlaylists(node.GetProperty("children"), result);
         }
+    }
+
+    public async Task UpdatePlaylistAsync(string playlistId, JsonElement expected, JsonElement items, CancellationToken token = default)
+    {
+        var current = await GetPlaylistContentsAsync(playlistId, token);
+        if (!JsonElement.DeepEquals(current, expected))
+            throw new InvalidOperationException("The playlist changed since preview. Refresh the preview before syncing.");
+        // The installed 21.4 API requires target_uuid on PUT even when GET omits it for headers/placeholders.
+        var payload = JsonNode.Parse(items.GetRawText())!.AsArray();
+        foreach (var item in payload) item!["target_uuid"] ??= "";
+        using var response = await _http.PutAsJsonAsync(new Uri(_address, $"v1/playlist/{Segment(playlistId)}"), payload, token);
+        if (!response.IsSuccessStatusCode)
+            throw new ProPresenterDiagnosticException($"Playlist update failed: HTTP {(int)response.StatusCode}. Refresh before retrying.");
     }
 
     private static ProPresenterItem Item(JsonElement element) => new(Text(element, "uuid"), Text(element, "name"));

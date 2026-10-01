@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Navigation;
 using ScriptureSync.App.Services;
+using ScriptureSync.Core.Configuration;
+using System.Windows.Controls;
 
 namespace ScriptureSync.App;
 
@@ -10,13 +12,29 @@ public partial class SettingsWindow : Window
 {
     private readonly PlanningCenterCredentials _existingCredentials;
     private bool _removeCredentials;
+    private readonly ProPresenterSettingsPanel _presentationPanel;
 
     public SettingsWindow(
         string defaultBibleTranslation,
         PlanningCenterCredentials credentials,
-        IReadOnlyCollection<string> planningCenterItemNames)
+        IReadOnlyCollection<string> planningCenterItemNames, AppConfiguration? configuration = null)
     {
         InitializeComponent();
+        _presentationPanel = new(configuration ?? new AppConfiguration());
+        var general = (Grid)Content;
+        Content = null;
+        var oldFooter = general.Children.OfType<StackPanel>().Single(panel => Grid.GetRow(panel) == 15);
+        general.Children.Remove(oldFooter);
+        var root = new DockPanel();
+        DockPanel.SetDock(oldFooter, Dock.Bottom);
+        oldFooter.Margin = new Thickness(20, 12, 20, 16);
+        root.Children.Add(oldFooter);
+        var tabs = new TabControl();
+        tabs.Items.Add(new TabItem { Header = "General / Planning Center", Content = new ScrollViewer { Content = general, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } });
+        tabs.Items.Add(new TabItem { Header = "Presentation software", Content = new ScrollViewer { Content = _presentationPanel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } });
+        root.Children.Add(tabs);
+        Content = root;
+        Width = 660; Height = 800; MaxHeight = SystemParameters.WorkArea.Height - 40;
         _existingCredentials = credentials;
         DefaultTranslationTextBox.Text = defaultBibleTranslation;
         PlanningCenterApplicationIdTextBox.Text = credentials.ApplicationId;
@@ -33,9 +51,17 @@ public partial class SettingsWindow : Window
     public PlanningCenterCredentials PlanningCenterCredentials { get; private set; } = new(string.Empty, string.Empty);
     public IReadOnlyList<string> PlanningCenterItemNames { get; private set; } = [];
     public bool RemovePlanningCenterCredentials => _removeCredentials;
+    public string PresentationSoftware => _presentationPanel.Software;
+    public ProPresenterConfiguration ProPresenterConfiguration => _presentationPanel.Configuration;
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
+        if (PresentationSoftware == "ProPresenter" && (!Uri.TryCreate(ProPresenterConfiguration.Address, UriKind.Absolute, out var address) ||
+            (address.Scheme != "http" && address.Scheme != "https")))
+        {
+            MessageBox.Show(this, "Enter the complete ProPresenter API address, including its port.");
+            return;
+        }
         var value = DefaultTranslationTextBox.Text.Trim().ToUpperInvariant();
         if (!Regex.IsMatch(value, "^[A-Z][A-Z0-9.-]{0,14}$"))
         {

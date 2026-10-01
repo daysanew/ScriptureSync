@@ -1,6 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\ScriptureSync.ProPresenter\ScriptureSync.ProPresenter.csproj" />
     <ProjectReference Include="..\ScriptureSync.Core\ScriptureSync.Core.csproj" />
     <ProjectReference Include="..\ScriptureSync.OpenLP\ScriptureSync.OpenLP.csproj" />
     <ProjectReference Include="..\ScriptureSync.PlanningCenter\ScriptureSync.PlanningCenter.csproj" />
@@ -12,7 +13,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.1.0</Version>
+    <Version>0.2.0-preview.1</Version>
   </PropertyGroup>
 
 </Project>

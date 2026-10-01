@@ -5,7 +5,7 @@ using ScriptureSync.Core.Logging;
 
 namespace ScriptureSync.App.Services;
 
-public sealed record StoredDraftItem(Guid Id, string RawText, string Source);
+public sealed record StoredDraftItem(Guid Id, string RawText, string Source, string? SourceKey = null, string? PcoItemName = null);
 
 public sealed class ManualDraftStore(LocalAppPaths paths, IAppLogger logger)
 {

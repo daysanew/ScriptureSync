@@ -30,8 +30,9 @@ search indexes, or license files. No package data is redistributed in Git.
 ## Implementation
 
 `tools/ScriptureSync.ProPresenter.BibleSpike` contains a catalog, USX reader, and
-console diagnostic. It references the existing Core parser and keeps its
-experimental verse/passage models local to the spike.
+console diagnostic. It references the existing Core parser and now returns
+shared `ScriptureSync.Core.Bibles` verse/passage models used by the
+[destination-independent composer](scripture-composition.md).
 
 The catalog discovers package directories containing `rvmetadata.xml`, maps
 abbreviations case-insensitively, rejects ambiguous codes and missing metadata,

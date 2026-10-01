@@ -1,8 +1,8 @@
 using Google.Protobuf;
 using Pro.SerializationInterop.RVProtoData;
 using ScriptureSync.Core.Parsing;
-using ScriptureSync.ProPresenter.BibleSpike;
-using ScriptureSync.ProPresenter.TemplateSpike;
+using ScriptureSync.ProPresenter;
+
 
 if (args.Length != 3)
 {
@@ -22,7 +22,7 @@ try
     if (reference.VerseSelection?.Contains(',') == true) throw new InvalidDataException("Discontiguous ranges are outside this spike.");
     var bible = new ProPresenterBibleCatalog(ProPresenterBibleCatalog.DefaultRoot).Find(parsed.TranslationCodes[0]);
     var passage = new UsxBibleReader().Read(bible, reference);
-    var output = TemplateWriter.Create(template, passage);
+    var output = ProPresenterDocumentWriter.Create(template, passage);
     var bytes = output.ToByteArray();
     if (!output.Equals(Presentation.Parser.ParseFrom(bytes))) throw new InvalidDataException("Output round-trip failed.");
     if (!original.SequenceEqual(template.ToByteArray())) throw new InvalidDataException("In-memory template changed.");
