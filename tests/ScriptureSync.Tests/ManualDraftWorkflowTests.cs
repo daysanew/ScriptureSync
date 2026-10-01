@@ -156,6 +156,36 @@ public sealed class ManualDraftWorkflowTests : IDisposable
     }
 
     [Fact]
+    public async Task Semicolon_typo_needs_attention_and_is_not_sent_to_OpenLP_until_corrected()
+    {
+        var client = new FakeOpenLpClient();
+        var viewModel = CreateViewModel(client);
+        viewModel.AddPastedText("Col 2;9 (NKJV)\nJohn 3:16 (KJV)");
+        var typo = viewModel.Items[0];
+
+        Assert.False(typo.IsValid);
+        Assert.Empty(typo.NormalizedText);
+        Assert.Equal(1, viewModel.ReadyCount);
+        Assert.Equal(1, viewModel.AttentionCount);
+
+        await viewModel.SyncToOpenLpAsync();
+
+        Assert.Equal([("KJV", "John 3:16")], client.AddAttempts);
+        Assert.Contains("Use ':' between chapter and verse", typo.Status);
+        Assert.Equal("Sync complete • 1 added • 1 need attention", viewModel.OpenLpStatus);
+
+        typo.RawText = "Col 2:9 (NKJV)";
+        Assert.True(typo.IsValid);
+        Assert.Equal("Colossians 2:9 (NKJV)", typo.NormalizedText);
+        client.AddAttempts.Clear();
+
+        await viewModel.SyncToOpenLpAsync();
+
+        Assert.Equal([("NKJV", "Colossians 2:9"), ("KJV", "John 3:16")], client.AddAttempts);
+        Assert.Equal("Sync complete • 2 added", viewModel.OpenLpStatus);
+    }
+
+    [Fact]
     public async Task Sync_stops_immediately_when_OpenLP_disconnects()
     {
         var client = new FakeOpenLpClient { DisconnectOnReference = "Psalm 71:5" };

@@ -66,6 +66,15 @@ public sealed partial class ScriptureReferenceParser
 
     private static ScriptureParseResult ParseBookGroup(string book, string body)
     {
+        // A semicolon between bare numbers can be a mistyped chapter/verse
+        // separator. Do not silently turn it into whole-chapter requests.
+        if (body.Contains(';') && !body.Contains(':'))
+        {
+            return ScriptureParseResult.Invalid(
+                $"Ambiguous ';' in {book} {body.Trim()}. Use ':' between chapter and verse, " +
+                "or repeat the book name for separate whole chapters.");
+        }
+
         body = body.Replace('&', ',').Replace(';', ',').Trim().TrimEnd(',').Trim();
 
         var crossChapterMatch = CrossChapterRangeRegex().Match(body);

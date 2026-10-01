@@ -47,6 +47,26 @@ The install script publishes the application with the existing .NET runtime,
 so the computer must have the .NET 10 SDK installed. The script does not install
 the SDK or other .NET dependencies for you.
 
+## Scripture reference formats
+
+Use a colon (`:`) between chapter and verse. Semicolons (`;`) separate passages.
+Enter one scripture entry per row, or paste multiple entries on separate lines.
+
+| Example | Meaning |
+| --- | --- |
+| `Col 2:9 (NKJV)` | Colossians chapter 2, verse 9 |
+| `John 1:1-5,7 (KJV)` | Verses 1–5 and 7 in John chapter 1 |
+| `John 3:16; Romans 8:28 (KJV)` | Passages from different books |
+| `John 1:1-5; 2:4-5 (KJV)` | Passages from different chapters in the same book |
+| `Psalm 23 (KJV)` | A whole chapter |
+| `Col 2; Col 3 (NKJV)` | Two whole chapters, with the book name repeated |
+| `Acts 7:54-8:3 (KJV)` | A verse range spanning chapters |
+
+`Col 2;9 (NKJV)` is ambiguous and is rejected with guidance to use `:` between
+chapter and verse. It appears as needing attention and is skipped during sync.
+Correct it to `Col 2:9 (NKJV)` to send only that verse. For separate whole chapters
+joined by semicolons, repeat the book name as in `Col 2; Col 3 (NKJV)`.
+
 ## Bible translation names
 
 Each Bible installed in OpenLP needs a short name, such as `KJV`, `NKJV`, `NLT`,

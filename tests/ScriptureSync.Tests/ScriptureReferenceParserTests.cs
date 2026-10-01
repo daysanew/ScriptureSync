@@ -33,6 +33,7 @@ public class ScriptureReferenceParserTests
     [Theory]
     [InlineData("John 1:1-5, 2:4-5 (KJV)")]
     [InlineData("John 1:1-5 & 2:4-5 (KJV)")]
+    [InlineData("John 1:1-5; 2:4-5 (KJV)")]
     [InlineData("John 1:1-5; John 2:4-5 (KJV)")]
     public void Parses_multiple_chapters(string input)
     {
@@ -49,6 +50,29 @@ public class ScriptureReferenceParserTests
 
         Assert.True(result.IsValid, result.ErrorMessage);
         Assert.Equal("Psalm 23", Assert.Single(result.Passages).ToString());
+    }
+
+    [Theory]
+    [InlineData("Col 2;9 (NKJV)")]
+    [InlineData("Colossians 2; 9")]
+    [InlineData("Col 2;3 (NKJV)")]
+    [InlineData("John 3:16; Col 2;9 (NKJV)")]
+    public void Rejects_ambiguous_semicolons_in_whole_chapter_input(string input)
+    {
+        var result = _parser.Parse(input);
+
+        Assert.False(result.IsValid);
+        Assert.Empty(result.Passages);
+        Assert.Contains("Use ':' between chapter and verse", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void Parses_explicit_whole_chapters_separated_by_semicolons()
+    {
+        var result = _parser.Parse("Col 2; Col 3 (NKJV)");
+
+        Assert.True(result.IsValid, result.ErrorMessage);
+        Assert.Equal(["Colossians 2", "Colossians 3"], result.Passages.Select(x => x.ToString()));
     }
 
     [Theory]
