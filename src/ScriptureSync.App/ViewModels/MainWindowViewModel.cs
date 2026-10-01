@@ -193,7 +193,12 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 activeItem = item;
                 var parsed = item.ParseResult;
-                if (!parsed.IsValid) continue;
+                if (!parsed.IsValid)
+                {
+                    failedRows++;
+                    item.SetSyncStatus(parsed.ErrorMessage);
+                    continue;
+                }
 
                 var rowAdded = 0;
                 var rowErrors = new List<string>();

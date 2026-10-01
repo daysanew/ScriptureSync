@@ -69,12 +69,22 @@
                     Foreground="#8A2020"
                     Content="Clear All" />
             </WrapPanel>
-            <TextBlock Grid.Row="1"
-                       HorizontalAlignment="Right"
-                       Margin="0,0,0,2"
-                       FontWeight="SemiBold"
-                       Foreground="#4B5869"
-                       Text="{Binding SummaryText}" />
+            <Border Grid.Row="1" Margin="-30,4,-30,0" Padding="30,10">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="#B91C1C" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding AttentionCount}" Value="0">
+                                <Setter Property="Background" Value="#15803D" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           Text="{Binding SummaryText}" />
+            </Border>
         </Grid>
 
         <Border Grid.Row="6" Background="White" CornerRadius="9" BorderBrush="#DDE2E9" BorderThickness="1">
